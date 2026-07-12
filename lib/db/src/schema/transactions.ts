@@ -20,6 +20,7 @@ export const transactionsTable = pgTable("transactions", {
   amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
   description: text("description").notNull(),
   date: date("date", { mode: "string" }).notNull(),
+  receiptPath: text("receipt_path"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

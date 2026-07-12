@@ -14,4 +14,6 @@ export interface TransactionUpdate {
   /** @minLength 1 */
   description?: string;
   date?: Date;
+  /** Object storage path to the uploaded receipt/invoice PDF or image, if any. */
+  receiptPath?: string | null;
 }

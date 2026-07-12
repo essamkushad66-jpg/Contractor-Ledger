@@ -136,6 +136,7 @@ export const ListProjectTransactionsResponseItem = zod.object({
   "amount": zod.number(),
   "description": zod.string(),
   "date": zod.coerce.date(),
+  "receiptPath": zod.string().nullish().describe('Object storage path to the uploaded receipt\/invoice PDF or image, if any.'),
   "createdAt": zod.coerce.date()
 })
 export const ListProjectTransactionsResponse = zod.array(ListProjectTransactionsResponseItem)
@@ -157,7 +158,8 @@ export const CreateProjectTransactionBody = zod.object({
   "type": zod.enum(['deposit', 'expense']),
   "amount": zod.number().gt(createProjectTransactionBodyAmountExclusiveMin),
   "description": zod.string().min(1),
-  "date": zod.coerce.date()
+  "date": zod.coerce.date(),
+  "receiptPath": zod.string().nullish().describe('Object storage path to the uploaded receipt\/invoice PDF or image, if any.')
 })
 
 export const CreateProjectTransactionResponse = zod.object({
@@ -167,6 +169,7 @@ export const CreateProjectTransactionResponse = zod.object({
   "amount": zod.number(),
   "description": zod.string(),
   "date": zod.coerce.date(),
+  "receiptPath": zod.string().nullish().describe('Object storage path to the uploaded receipt\/invoice PDF or image, if any.'),
   "createdAt": zod.coerce.date()
 })
 
@@ -187,7 +190,8 @@ export const UpdateTransactionBody = zod.object({
   "type": zod.enum(['deposit', 'expense']).optional(),
   "amount": zod.number().gt(updateTransactionBodyAmountExclusiveMin).optional(),
   "description": zod.string().min(1).optional(),
-  "date": zod.coerce.date().optional()
+  "date": zod.coerce.date().optional(),
+  "receiptPath": zod.string().nullish().describe('Object storage path to the uploaded receipt\/invoice PDF or image, if any.')
 })
 
 export const UpdateTransactionResponse = zod.object({
@@ -197,6 +201,7 @@ export const UpdateTransactionResponse = zod.object({
   "amount": zod.number(),
   "description": zod.string(),
   "date": zod.coerce.date(),
+  "receiptPath": zod.string().nullish().describe('Object storage path to the uploaded receipt\/invoice PDF or image, if any.'),
   "createdAt": zod.coerce.date()
 })
 
@@ -220,5 +225,61 @@ export const GetDashboardSummaryResponse = zod.object({
   "totalSpent": zod.number(),
   "totalBalance": zod.number()
 })
+
+
+/**
+ * Returns a presigned GCS URL for direct upload. The client sends JSON
+ * metadata here, then uploads the file directly to the returned URL.
+ * @summary Request a presigned URL for file upload
+ */
+
+
+
+
+
+export const RequestUploadUrlBody = zod.object({
+  "name": zod.string().min(1).describe('Original file name.'),
+  "size": zod.number().min(1).describe('File size in bytes.'),
+  "contentType": zod.string().min(1).describe('MIME type of the file (e.g. `application\/pdf`).')
+})
+
+
+
+
+
+
+export const RequestUploadUrlResponse = zod.object({
+  "uploadURL": zod.url().describe('Presigned GCS URL for PUT upload.'),
+  "objectPath": zod.string().describe('Normalized object path (e.g. `\/objects\/uploads\/uuid`). Store this in your database.'),
+  "metadata": zod.object({
+  "name": zod.string().min(1).describe('Original file name.'),
+  "size": zod.number().min(1).describe('File size in bytes.'),
+  "contentType": zod.string().min(1).describe('MIME type of the file (e.g. `application\/pdf`).')
+}).optional()
+})
+
+
+/**
+ * Unconditionally public — no authentication or ACL checks.
+ * Searches PUBLIC_OBJECT_SEARCH_PATHS for the given file path.
+ * @summary Serve a public asset from PUBLIC_OBJECT_SEARCH_PATHS
+ */
+export const GetPublicObjectParams = zod.object({
+  "filePath": zod.coerce.string().describe('Relative file path within the public search paths.')
+})
+
+export const GetPublicObjectResponse = zod.unknown()
+
+
+/**
+ * Serves object entities uploaded via presigned URLs. These can optionally
+ * be protected with authentication or ACL checks based on the use case.
+ * @summary Serve an object entity from PRIVATE_OBJECT_DIR
+ */
+export const GetStorageObjectParams = zod.object({
+  "objectPath": zod.coerce.string().describe('Object path within the private object dir (e.g. `uploads\/some-uuid`).')
+})
+
+export const GetStorageObjectResponse = zod.unknown()
 
 

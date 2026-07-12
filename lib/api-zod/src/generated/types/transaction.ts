@@ -14,5 +14,7 @@ export interface Transaction {
   amount: number;
   description: string;
   date: Date;
+  /** Object storage path to the uploaded receipt/invoice PDF or image, if any. */
+  receiptPath?: string | null;
   createdAt: Date;
 }

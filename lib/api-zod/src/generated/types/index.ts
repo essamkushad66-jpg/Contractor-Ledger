@@ -7,6 +7,7 @@
  */
 
 export * from './dashboardSummary';
+export * from './errorEnvelope';
 export * from './healthStatus';
 export * from './project';
 export * from './projectInput';
@@ -17,3 +18,5 @@ export * from './transactionInputType';
 export * from './transactionType';
 export * from './transactionUpdate';
 export * from './transactionUpdateType';
+export * from './uploadUrlRequest';
+export * from './uploadUrlResponse';

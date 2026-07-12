@@ -5,6 +5,36 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+export interface UploadUrlRequest {
+  /**
+     * Original file name.
+     * @minLength 1
+     */
+  name: string;
+  /**
+     * File size in bytes.
+     * @minimum 1
+     */
+  size: number;
+  /**
+     * MIME type of the file (e.g. `application/pdf`).
+     * @minLength 1
+     */
+  contentType: string;
+}
+
+export interface UploadUrlResponse {
+  /** Presigned GCS URL for PUT upload. */
+  uploadURL: string;
+  /** Normalized object path (e.g. `/objects/uploads/uuid`). Store this in your database. */
+  objectPath: string;
+  metadata?: UploadUrlRequest;
+}
+
+export interface ErrorEnvelope {
+  error: string;
+}
+
 export interface HealthStatus {
   status: string;
 }
@@ -59,6 +89,8 @@ export interface Transaction {
   amount: number;
   description: string;
   date: string;
+  /** Object storage path to the uploaded receipt/invoice PDF or image, if any. */
+  receiptPath?: string | null;
   createdAt: string;
 }
 
@@ -77,6 +109,8 @@ export interface TransactionInput {
   /** @minLength 1 */
   description: string;
   date: string;
+  /** Object storage path to the uploaded receipt/invoice PDF or image, if any. */
+  receiptPath?: string | null;
 }
 
 export type TransactionUpdateType = typeof TransactionUpdateType[keyof typeof TransactionUpdateType];
@@ -94,6 +128,8 @@ export interface TransactionUpdate {
   /** @minLength 1 */
   description?: string;
   date?: string;
+  /** Object storage path to the uploaded receipt/invoice PDF or image, if any. */
+  receiptPath?: string | null;
 }
 
 export interface DashboardSummary {
