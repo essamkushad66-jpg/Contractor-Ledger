@@ -74,10 +74,10 @@ router.get("/storage/public-objects/*", async (c) => {
   }
 
   const headers = new Headers();
-  object.writeHttpMetadata(headers);
+  object.writeHttpMetadata(headers as any);
   headers.set("etag", object.httpEtag);
 
-  return new Response(object.body as ReadableStream, {
+  return new Response(object.body as any, {
     headers,
   });
 });
@@ -91,10 +91,10 @@ router.get("/storage/objects/*", requireAuth, async (c) => {
   }
 
   const headers = new Headers();
-  object.writeHttpMetadata(headers);
+  object.writeHttpMetadata(headers as any);
   headers.set("etag", object.httpEtag);
 
-  return new Response(object.body as ReadableStream, {
+  return new Response(object.body as any, {
     headers,
   });
 });
