@@ -13,5 +13,5 @@ export const requireAuth = createMiddleware<Env>(async (c, next) => {
     return c.json({ error: "Unauthorized" }, 401)
   }
   c.set('userId', auth.userId)
-  await next()
+  return await next()
 })

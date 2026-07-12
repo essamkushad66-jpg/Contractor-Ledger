@@ -12,7 +12,7 @@ type Env = {
     userId: string
   },
   Bindings: {
-    R2_BUCKET: R2Bucket,
+    R2_BUCKET: import("@cloudflare/workers-types").R2Bucket,
     R2_ACCOUNT_ID: string,
     R2_ACCESS_KEY_ID: string,
     R2_SECRET_ACCESS_KEY: string
