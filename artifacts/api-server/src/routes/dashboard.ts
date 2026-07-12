@@ -1,17 +1,22 @@
-import { Router, type IRouter } from "express";
+import { Hono } from "hono";
 import { eq, sql } from "drizzle-orm";
 import { db, projectsTable, transactionsTable } from "@workspace/db";
 import { GetDashboardSummaryResponse } from "@workspace/api-zod";
 import { requireAuth } from "../middlewares/requireAuth";
 
-const router: IRouter = Router();
+type Env = {
+  Variables: {
+    userId: string
+  }
+}
 
-router.use(requireAuth);
+const router = new Hono<Env>();
 
-router.get("/dashboard/summary", async (req, res): Promise<void> => {
-  const userId = req.userId as string;
-  req.log.info("Computing dashboard summary");
+router.use("*", requireAuth);
 
+router.get("/dashboard/summary", async (c) => {
+  const userId = c.get("userId");
+  
   const [{ projectCount }] = await db
     .select({ projectCount: sql<number>`COUNT(*)::int` })
     .from(projectsTable)
@@ -32,13 +37,13 @@ router.get("/dashboard/summary", async (req, res): Promise<void> => {
   const received = Number(totalReceived ?? 0);
   const spent = Number(totalSpent ?? 0);
 
-  res.json(
+  return c.json(
     GetDashboardSummaryResponse.parse({
       projectCount: projectCount ?? 0,
       totalReceived: received,
       totalSpent: spent,
       totalBalance: received - spent,
-    }),
+    })
   );
 });
 

@@ -1,27 +1,17 @@
-import type { NextFunction, Request, Response } from "express";
-import { getAuth } from "@clerk/express";
+import { createMiddleware } from 'hono/factory'
+import { getAuth } from '@hono/clerk-auth'
 
-declare global {
-  namespace Express {
-    interface Request {
-      userId?: string;
-    }
+type Env = {
+  Variables: {
+    userId: string
   }
 }
 
-export function requireAuth(
-  req: Request,
-  res: Response,
-  next: NextFunction,
-): void {
-  const auth = getAuth(req);
-  const userId = auth?.userId;
-
-  if (!userId) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
+export const requireAuth = createMiddleware<Env>(async (c, next) => {
+  const auth = getAuth(c)
+  if (!auth?.userId) {
+    return c.json({ error: "Unauthorized" }, 401)
   }
-
-  req.userId = userId;
-  next();
-}
+  c.set('userId', auth.userId)
+  await next()
+})

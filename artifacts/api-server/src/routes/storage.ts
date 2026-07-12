@@ -1,142 +1,102 @@
-import { Readable } from 'stream';
+import { Hono } from "hono";
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import {
   RequestUploadUrlBody,
   RequestUploadUrlResponse,
-} from '@workspace/api-zod';
-import { Router, type IRouter, type Request, type Response } from 'express';
+} from "@workspace/api-zod";
+import { requireAuth } from "../middlewares/requireAuth";
 
-import { requireAuth } from '../middlewares/requireAuth';
-import {
-  ObjectNotFoundError,
-  ObjectStorageService,
-} from '../lib/objectStorage';
-
-const router: IRouter = Router();
-const objectStorageService = new ObjectStorageService();
-
-/**
- * POST /storage/uploads/request-url
- *
- * Request a presigned URL for file upload.
- * The client sends JSON metadata (name, size, contentType) — NOT the file.
- * Then uploads the file directly to the returned presigned URL.
- * Requires auth middleware so public callers cannot mint write-capable URLs.
- */
-router.post(
-  '/storage/uploads/request-url',
-  requireAuth,
-  async (req: Request, res: Response) => {
-    const parsed = RequestUploadUrlBody.safeParse(req.body);
-    if (!parsed.success) {
-      res.status(400).json({ error: 'Missing or invalid required fields' });
-      return;
-    }
-
-    try {
-      const { name, size, contentType } = parsed.data;
-
-      const uploadURL = await objectStorageService.getObjectEntityUploadURL();
-      const objectPath =
-        objectStorageService.normalizeObjectEntityPath(uploadURL);
-
-      res.json(
-        RequestUploadUrlResponse.parse({
-          uploadURL,
-          objectPath,
-          metadata: { name, size, contentType },
-        }),
-      );
-    } catch (error) {
-      req.log.error({ err: error }, 'Error generating upload URL');
-      res.status(500).json({ error: 'Failed to generate upload URL' });
-    }
+type Env = {
+  Variables: {
+    userId: string
   },
-);
-
-/**
- * GET /storage/public-objects/*
- *
- * Serve public assets from PUBLIC_OBJECT_SEARCH_PATHS.
- * These are unconditionally public — no authentication or ACL checks.
- * IMPORTANT: Always provide this endpoint when object storage is set up.
- */
-router.get(
-  '/storage/public-objects/*filePath',
-  async (req: Request, res: Response) => {
-    try {
-      const raw = req.params.filePath;
-      const filePath = Array.isArray(raw) ? raw.join('/') : raw;
-      const file = await objectStorageService.searchPublicObject(filePath);
-      if (!file) {
-        res.status(404).json({ error: 'File not found' });
-        return;
-      }
-
-      const response = await objectStorageService.downloadObject(file);
-
-      res.status(response.status);
-      response.headers.forEach((value, key) => res.setHeader(key, value));
-
-      if (response.body) {
-        const nodeStream = Readable.fromWeb(
-          response.body as ReadableStream<Uint8Array>,
-        );
-        nodeStream.pipe(res);
-      } else {
-        res.end();
-      }
-    } catch (error) {
-      req.log.error({ err: error }, 'Error serving public object');
-      res.status(500).json({ error: 'Failed to serve public object' });
-    }
-  },
-);
-
-/**
- * GET /storage/objects/*
- *
- * Serve object entities from PRIVATE_OBJECT_DIR.
- * These are served from a separate path from /public-objects and can optionally
- * be protected with authentication or ACL checks based on the use case.
- */
-router.get(
-  '/storage/objects/*path',
-  requireAuth,
-  async (req: Request, res: Response) => {
-  try {
-    const raw = req.params.path;
-    const wildcardPath = Array.isArray(raw) ? raw.join('/') : raw;
-    const objectPath = `/objects/${wildcardPath}`;
-    const objectFile =
-      await objectStorageService.getObjectEntityFile(objectPath);
-
-    // Receipts are only ever linked to from a transaction the requesting
-    // user already owns (enforced in transactions.ts), so any authenticated
-    // user reaching this route with a valid object path is allowed to read it.
-
-    const response = await objectStorageService.downloadObject(objectFile);
-
-    res.status(response.status);
-    response.headers.forEach((value, key) => res.setHeader(key, value));
-
-    if (response.body) {
-      const nodeStream = Readable.fromWeb(
-        response.body as ReadableStream<Uint8Array>,
-      );
-      nodeStream.pipe(res);
-    } else {
-      res.end();
-    }
-  } catch (error) {
-    if (error instanceof ObjectNotFoundError) {
-      req.log.warn({ err: error }, 'Object not found');
-      res.status(404).json({ error: 'Object not found' });
-      return;
-    }
-    req.log.error({ err: error }, 'Error serving object');
-    res.status(500).json({ error: 'Failed to serve object' });
+  Bindings: {
+    R2_BUCKET: R2Bucket,
+    R2_ACCOUNT_ID: string,
+    R2_ACCESS_KEY_ID: string,
+    R2_SECRET_ACCESS_KEY: string
   }
-  },
-);
+}
+
+const router = new Hono<Env>();
+
+router.post("/storage/uploads/request-url", requireAuth, async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const parsed = RequestUploadUrlBody.safeParse(body);
+  if (!parsed.success) {
+    return c.json({ error: "Missing or invalid required fields" }, 400);
+  }
+
+  try {
+    const { name, size, contentType } = parsed.data;
+
+    const S3 = new S3Client({
+      region: "auto",
+      endpoint: `https://${c.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+      credentials: {
+        accessKeyId: c.env.R2_ACCESS_KEY_ID,
+        secretAccessKey: c.env.R2_SECRET_ACCESS_KEY,
+      },
+    });
+
+    const objectId = crypto.randomUUID();
+    const objectPath = `/objects/uploads/${objectId}`;
+
+    const uploadURL = await getSignedUrl(
+      S3,
+      new PutObjectCommand({
+        Bucket: "contractor-ledger", // Arbitrary name for Cloudflare R2
+        Key: `uploads/${objectId}`,
+        ContentType: contentType,
+      }),
+      { expiresIn: 3600 }
+    );
+
+    return c.json(
+      RequestUploadUrlResponse.parse({
+        uploadURL,
+        objectPath,
+        metadata: { name, size, contentType },
+      })
+    );
+  } catch (error) {
+    return c.json({ error: "Failed to generate upload URL" }, 500);
+  }
+});
+
+router.get("/storage/public-objects/*", async (c) => {
+  const filePath = c.req.path.replace(/^.*\/storage\/public-objects\//, "public/");
+  const object = await c.env.R2_BUCKET.get(filePath);
+
+  if (!object) {
+    return c.json({ error: "File not found" }, 404);
+  }
+
+  const headers = new Headers();
+  object.writeHttpMetadata(headers);
+  headers.set("etag", object.httpEtag);
+
+  return new Response(object.body as ReadableStream, {
+    headers,
+  });
+});
+
+router.get("/storage/objects/*", requireAuth, async (c) => {
+  const filePath = c.req.path.replace(/^.*\/storage\/objects\//, "");
+  const object = await c.env.R2_BUCKET.get(filePath);
+
+  if (!object) {
+    return c.json({ error: "Object not found" }, 404);
+  }
+
+  const headers = new Headers();
+  object.writeHttpMetadata(headers);
+  headers.set("etag", object.httpEtag);
+
+  return new Response(object.body as ReadableStream, {
+    headers,
+  });
+});
 
 export default router;

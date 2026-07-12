@@ -1,4 +1,4 @@
-import { Router, type IRouter } from "express";
+import { Hono } from "hono";
 import { and, eq } from "drizzle-orm";
 import { db, projectsTable, transactionsTable } from "@workspace/db";
 import {
@@ -14,104 +14,100 @@ import {
 } from "@workspace/api-zod";
 import { requireAuth } from "../middlewares/requireAuth";
 
-const router: IRouter = Router();
+type Env = {
+  Variables: {
+    userId: string
+  }
+}
 
-router.use(requireAuth);
+const router = new Hono<Env>();
 
-router.get(
-  "/projects/:id/transactions",
-  async (req, res): Promise<void> => {
-    const userId = req.userId as string;
-    const params = ListProjectTransactionsParams.safeParse(req.params);
-    if (!params.success) {
-      res.status(400).json({ error: params.error.message });
-      return;
-    }
+router.use("*", requireAuth);
 
-    const [project] = await db
-      .select()
-      .from(projectsTable)
-      .where(
-        and(
-          eq(projectsTable.id, params.data.id),
-          eq(projectsTable.userId, userId),
-        ),
-      );
+router.get("/projects/:id/transactions", async (c) => {
+  const userId = c.get("userId");
+  const params = ListProjectTransactionsParams.safeParse(c.req.param());
+  if (!params.success) {
+    return c.json({ error: params.error.message }, 400);
+  }
 
-    if (!project) {
-      res.status(404).json({ error: "Project not found" });
-      return;
-    }
-
-    const transactions = await db
-      .select()
-      .from(transactionsTable)
-      .where(eq(transactionsTable.projectId, params.data.id))
-      .orderBy(transactionsTable.date, transactionsTable.createdAt);
-
-    res.json(
-      ListProjectTransactionsResponse.parse(
-        transactions.map((t) => ({ ...t, amount: Number(t.amount) })),
+  const [project] = await db
+    .select()
+    .from(projectsTable)
+    .where(
+      and(
+        eq(projectsTable.id, params.data.id),
+        eq(projectsTable.userId, userId),
       ),
     );
-  },
-);
 
-router.post(
-  "/projects/:id/transactions",
-  async (req, res): Promise<void> => {
-    const userId = req.userId as string;
-    const params = CreateProjectTransactionParams.safeParse(req.params);
-    if (!params.success) {
-      res.status(400).json({ error: params.error.message });
-      return;
-    }
+  if (!project) {
+    return c.json({ error: "Project not found" }, 404);
+  }
 
-    const parsed = CreateProjectTransactionBody.safeParse(req.body);
-    if (!parsed.success) {
-      res.status(400).json({ error: parsed.error.message });
-      return;
-    }
+  const transactions = await db
+    .select()
+    .from(transactionsTable)
+    .where(eq(transactionsTable.projectId, params.data.id))
+    .orderBy(transactionsTable.date, transactionsTable.createdAt);
 
-    const [project] = await db
-      .select()
-      .from(projectsTable)
-      .where(
-        and(
-          eq(projectsTable.id, params.data.id),
-          eq(projectsTable.userId, userId),
-        ),
-      );
+  return c.json(
+    ListProjectTransactionsResponse.parse(
+      transactions.map((t) => ({ ...t, amount: Number(t.amount) })),
+    ),
+  );
+});
 
-    if (!project) {
-      res.status(404).json({ error: "Project not found" });
-      return;
-    }
+router.post("/projects/:id/transactions", async (c) => {
+  const userId = c.get("userId");
+  const params = CreateProjectTransactionParams.safeParse(c.req.param());
+  if (!params.success) {
+    return c.json({ error: params.error.message }, 400);
+  }
 
-    const dateStr = parsed.data.date.toISOString().slice(0, 10);
-    const [transaction] = await db
-      .insert(transactionsTable)
-      .values({
-        ...parsed.data,
-        date: dateStr,
-        amount: String(parsed.data.amount),
-        projectId: params.data.id,
-      })
-      .returning();
+  const body = await c.req.json().catch(() => ({}));
+  const parsed = CreateProjectTransactionBody.safeParse(body);
+  if (!parsed.success) {
+    return c.json({ error: parsed.error.message }, 400);
+  }
 
-    if (!transaction) {
-      res.status(400).json({ error: "Failed to create transaction" });
-      return;
-    }
-
-    res.status(201).json(
-      CreateProjectTransactionResponse.parse({
-        ...transaction,
-        amount: Number(transaction.amount),
-      }),
+  const [project] = await db
+    .select()
+    .from(projectsTable)
+    .where(
+      and(
+        eq(projectsTable.id, params.data.id),
+        eq(projectsTable.userId, userId),
+      ),
     );
-  },
-);
+
+  if (!project) {
+    return c.json({ error: "Project not found" }, 404);
+  }
+
+  const dateStr = parsed.data.date.toISOString().slice(0, 10);
+  const [transaction] = await db
+    .insert(transactionsTable)
+    .values({
+      ...parsed.data,
+      date: dateStr,
+      amount: String(parsed.data.amount),
+      projectId: params.data.id,
+    })
+    .returning();
+
+  if (!transaction) {
+    return c.json({ error: "Failed to create transaction" }, 400);
+  }
+
+  return c.json(
+    CreateProjectTransactionResponse.parse({
+      ...transaction,
+      amount: Number(transaction.amount),
+    }),
+    201
+  );
+});
 
 async function findOwnedTransaction(transactionId: number, userId: string) {
   const [row] = await db
@@ -130,24 +126,22 @@ async function findOwnedTransaction(transactionId: number, userId: string) {
   return row?.transaction;
 }
 
-router.patch("/transactions/:id", async (req, res): Promise<void> => {
-  const userId = req.userId as string;
-  const params = UpdateTransactionParams.safeParse(req.params);
+router.patch("/transactions/:id", async (c) => {
+  const userId = c.get("userId");
+  const params = UpdateTransactionParams.safeParse(c.req.param());
   if (!params.success) {
-    res.status(400).json({ error: params.error.message });
-    return;
+    return c.json({ error: params.error.message }, 400);
   }
 
-  const parsed = UpdateTransactionBody.safeParse(req.body);
+  const body = await c.req.json().catch(() => ({}));
+  const parsed = UpdateTransactionBody.safeParse(body);
   if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.message });
-    return;
+    return c.json({ error: parsed.error.message }, 400);
   }
 
   const owned = await findOwnedTransaction(params.data.id, userId);
   if (!owned) {
-    res.status(404).json({ error: "Transaction not found" });
-    return;
+    return c.json({ error: "Transaction not found" }, 404);
   }
 
   const { date, amount, ...rest } = parsed.data;
@@ -162,11 +156,10 @@ router.patch("/transactions/:id", async (req, res): Promise<void> => {
     .returning();
 
   if (!transaction) {
-    res.status(404).json({ error: "Transaction not found" });
-    return;
+    return c.json({ error: "Transaction not found" }, 404);
   }
 
-  res.json(
+  return c.json(
     UpdateTransactionResponse.parse({
       ...transaction,
       amount: Number(transaction.amount),
@@ -174,25 +167,23 @@ router.patch("/transactions/:id", async (req, res): Promise<void> => {
   );
 });
 
-router.delete("/transactions/:id", async (req, res): Promise<void> => {
-  const userId = req.userId as string;
-  const params = DeleteTransactionParams.safeParse(req.params);
+router.delete("/transactions/:id", async (c) => {
+  const userId = c.get("userId");
+  const params = DeleteTransactionParams.safeParse(c.req.param());
   if (!params.success) {
-    res.status(400).json({ error: params.error.message });
-    return;
+    return c.json({ error: params.error.message }, 400);
   }
 
   const owned = await findOwnedTransaction(params.data.id, userId);
   if (!owned) {
-    res.status(404).json({ error: "Transaction not found" });
-    return;
+    return c.json({ error: "Transaction not found" }, 404);
   }
 
   await db
     .delete(transactionsTable)
     .where(eq(transactionsTable.id, params.data.id));
 
-  res.sendStatus(204);
+  return new Response(null, { status: 204 });
 });
 
 export default router;

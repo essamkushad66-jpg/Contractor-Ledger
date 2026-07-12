@@ -1,16 +1,16 @@
-import { Router, type IRouter } from "express";
+import { Hono } from "hono";
 import healthRouter from "./health";
 import projectsRouter from "./projects";
 import transactionsRouter from "./transactions";
 import dashboardRouter from "./dashboard";
 import storageRouter from "./storage";
 
-const router: IRouter = Router();
+const router = new Hono();
 
-router.use(healthRouter);
-router.use(projectsRouter);
-router.use(transactionsRouter);
-router.use(dashboardRouter);
-router.use(storageRouter);
+router.route("/", healthRouter);
+router.route("/", projectsRouter);
+router.route("/", transactionsRouter);
+router.route("/", dashboardRouter);
+router.route("/", storageRouter);
 
 export default router;
