@@ -5,8 +5,8 @@ import App from './App';
 
 import './index.css';
 
-if (import.meta.env.VITE_API_URL) {
-  setBaseUrl(import.meta.env.VITE_API_URL);
-}
+// Hardcoded for Cloudflare deployment to guarantee connection
+setBaseUrl(import.meta.env.VITE_API_URL || 'https://contractor-ledger.tcl2025mohaali.workers.dev/api');
+
 
 createRoot(document.getElementById('root')!).render(<App />);

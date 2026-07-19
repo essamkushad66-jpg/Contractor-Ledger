@@ -72,7 +72,19 @@ export default function Dashboard() {
         
         {isLoadingProjects ? (
           <div className="flex justify-center p-8 text-muted-foreground"><Loader2 className="h-8 w-8 animate-spin" /></div>
-        ) : !projects || projects.length === 0 ? (
+        ) : !Array.isArray(projects) ? (
+          <Card className="border-destructive bg-destructive/10">
+            <CardContent className="p-6 text-destructive">
+              <h3 className="font-bold mb-2">خطأ في الاتصال بالخادم (API Error)</h3>
+              <p>The frontend failed to connect to the backend API properly.</p>
+              <p className="mt-2 text-sm font-bold">VITE_API_URL is: {import.meta.env.VITE_API_URL || "NOT SET (UNDEFINED)"}</p>
+              <p className="mt-2 text-sm">It received this response instead of data:</p>
+              <pre className="mt-4 p-4 bg-background/50 rounded overflow-auto max-h-48 text-xs text-left whitespace-pre-wrap font-mono" dir="ltr">
+                {typeof projects === 'string' ? projects.slice(0, 500) : JSON.stringify(projects, null, 2)}
+              </pre>
+            </CardContent>
+          </Card>
+        ) : projects.length === 0 ? (
           <Card className="border-dashed">
             <CardContent className="flex flex-col items-center justify-center p-10 text-center">
               <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
