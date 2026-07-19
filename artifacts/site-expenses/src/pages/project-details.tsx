@@ -4,10 +4,13 @@ import { useGetProject, useListProjectTransactions, useDeleteProject, getListPro
 import { formatCurrency, formatDate } from "@/lib/format";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowUpRight, ArrowDownRight, Edit, Trash2, Building2, MapPin, Loader2, ArrowLeft, Printer } from "lucide-react";
+import { ArrowUpRight, ArrowDownRight, Edit, Trash2, Building2, MapPin, Loader2, ArrowLeft, Printer, Download, Image as ImageIcon, Users } from "lucide-react";
 import { Link } from "wouter";
+import { exportTransactionsToCSV } from "@/lib/export";
+import { customFetch } from "@workspace/api-client-react";
 import { ProjectDialog } from "@/components/project-dialog";
 import { TransactionDialog } from "@/components/transaction-dialog";
+import { MembersDialog } from "@/components/members-dialog";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -27,6 +30,7 @@ export default function ProjectDetails() {
   // Dialog states
   const [editProjectOpen, setEditProjectOpen] = useState(false);
   const [deleteProjectOpen, setDeleteProjectOpen] = useState(false);
+  const [membersDialogOpen, setMembersDialogOpen] = useState(false);
   
   const [transactionType, setTransactionType] = useState<"deposit" | "expense">("deposit");
   const [transactionDialogOpen, setTransactionDialogOpen] = useState(false);
@@ -67,6 +71,21 @@ export default function ProjectDetails() {
     });
   };
 
+  const viewReceipt = async (path: string) => {
+    try {
+      const toastId = toast.loading("جاري تحميل الصورة...");
+      // Using customFetch ensures the Clerk authentication token is attached securely
+      const res = await customFetch(path) as unknown as Response;
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      window.open(url, "_blank");
+      toast.dismiss(toastId);
+    } catch (e) {
+      toast.error("فشل تحميل الصورة. قد تكون محذوفة أو لا تملك صلاحية.");
+      toast.dismiss();
+    }
+  };
+
   if (isLoadingProject) {
     return <div className="flex justify-center items-center py-20"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
   }
@@ -101,15 +120,25 @@ export default function ProjectDetails() {
           </div>
         </div>
         <div className="flex gap-2 print:hidden">
+          <Button variant="outline" size="icon" onClick={() => setMembersDialogOpen(true)} title="مشاركة المشروع">
+            <Users className="h-4 w-4" />
+          </Button>
+          <Button variant="outline" size="icon" onClick={() => exportTransactionsToCSV(project as any, transactions as any)} title="تصدير كملف إكسيل (CSV)">
+            <Download className="h-4 w-4" />
+          </Button>
           <Button variant="outline" size="icon" onClick={() => window.print()} title="طباعة التقرير">
             <Printer className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" onClick={() => setEditProjectOpen(true)}>
-            <Edit className="h-4 w-4" />
-          </Button>
-          <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => setDeleteProjectOpen(true)}>
-            <Trash2 className="h-4 w-4" />
-          </Button>
+          {project.currentUserRole !== 'viewer' && (
+            <Button variant="ghost" size="icon" onClick={() => setEditProjectOpen(true)}>
+              <Edit className="h-4 w-4" />
+            </Button>
+          )}
+          {project.currentUserRole === 'owner' && (
+            <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => setDeleteProjectOpen(true)}>
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          )}
         </div>
       </div>
 
@@ -135,16 +164,18 @@ export default function ProjectDetails() {
       </Card>
 
       {/* Action Buttons */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 print:hidden">
-        <Button size="lg" variant="success" className="h-14 text-base shadow-sm" onClick={() => openTransactionDialog("deposit")}>
-          <ArrowDownRight className="ml-2 h-5 w-5" />
-          تسجيل دفعة مستلمة
-        </Button>
-        <Button size="lg" variant="destructive" className="h-14 text-base shadow-sm" onClick={() => openTransactionDialog("expense")}>
-          <ArrowUpRight className="ml-2 h-5 w-5" />
-          تسجيل مصروف
-        </Button>
-      </div>
+      {project.currentUserRole !== 'viewer' && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 print:hidden">
+          <Button size="lg" variant="success" className="h-14 text-base shadow-sm" onClick={() => openTransactionDialog("deposit")}>
+            <ArrowDownRight className="ml-2 h-5 w-5" />
+            تسجيل دفعة مستلمة
+          </Button>
+          <Button size="lg" variant="destructive" className="h-14 text-base shadow-sm" onClick={() => openTransactionDialog("expense")}>
+            <ArrowUpRight className="ml-2 h-5 w-5" />
+            تسجيل مصروف
+          </Button>
+        </div>
+      )}
 
       {/* Transactions List */}
       <div className="mt-8 space-y-4">
@@ -176,17 +207,26 @@ export default function ProjectDetails() {
                   </span>
                   
                   <div className="flex gap-1 print:hidden">
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => openTransactionDialog(tx.type, tx.id, {
-                      type: tx.type,
-                      amount: tx.amount,
-                      description: tx.description,
-                      date: tx.date.split('T')[0]
-                    })}>
-                      <Edit className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => setDeleteTransactionId(tx.id)}>
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
+                    {tx.receiptPath && (
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-primary hover:bg-primary/10 hover:text-primary" onClick={() => viewReceipt(tx.receiptPath!)} title="عرض الإيصال">
+                        <ImageIcon className="h-4 w-4" />
+                      </Button>
+                    )}
+                    {project.currentUserRole !== 'viewer' && (
+                      <>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => openTransactionDialog(tx.type, tx.id, {
+                          type: tx.type,
+                          amount: tx.amount,
+                          description: tx.description,
+                          date: tx.date.split('T')[0]
+                        })}>
+                          <Edit className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => setDeleteTransactionId(tx.id)}>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
@@ -233,6 +273,13 @@ export default function ProjectDetails() {
         description="هل أنت متأكد من حذف هذه الحركة المالية؟ سيتم تحديث رصيد المشروع تلقائياً."
         onConfirm={handleDeleteTransaction}
         isPending={deleteTransactionMutation.isPending}
+      />
+
+      <MembersDialog
+        projectId={projectId}
+        open={membersDialogOpen}
+        onOpenChange={setMembersDialogOpen}
+        currentUserRole={project.currentUserRole as "owner" | "editor" | "viewer"}
       />
     </div>
   );

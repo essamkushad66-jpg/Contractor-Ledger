@@ -13,8 +13,8 @@ export default function Landing() {
 
       <main className="flex-1 flex items-center">
         <div className="max-w-3xl mx-auto w-full px-4 md:px-6 py-12 text-center">
-          <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight leading-tight">
-            تابع مصاريف حوشك، بالسنتيم
+          <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight text-foreground">
+            تابع بناءك online
           </h1>
           <p className="mt-4 text-muted-foreground text-base md:text-lg max-w-xl mx-auto leading-relaxed">
             سجّل كل ما تستلمه من صاحب المشروع، وكل مصروف تصرفه على الحديد والأسمنت والبلك والعمال —

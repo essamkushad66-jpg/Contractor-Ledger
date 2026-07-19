@@ -39,6 +39,18 @@ export interface HealthStatus {
   status: string;
 }
 
+/**
+ * Role of the currently authenticated user in this project
+ */
+export type ProjectCurrentUserRole = typeof ProjectCurrentUserRole[keyof typeof ProjectCurrentUserRole];
+
+
+export const ProjectCurrentUserRole = {
+  owner: 'owner',
+  editor: 'editor',
+  viewer: 'viewer',
+} as const;
+
 export interface Project {
   id: number;
   name: string;
@@ -54,6 +66,8 @@ export interface Project {
   /** totalReceived minus totalSpent (money remaining in hand) */
   balance: number;
   createdAt: string;
+  /** Role of the currently authenticated user in this project */
+  currentUserRole: ProjectCurrentUserRole;
 }
 
 export interface ProjectInput {
@@ -137,5 +151,35 @@ export interface DashboardSummary {
   totalReceived: number;
   totalSpent: number;
   totalBalance: number;
+}
+
+export type ProjectMemberRole = typeof ProjectMemberRole[keyof typeof ProjectMemberRole];
+
+
+export const ProjectMemberRole = {
+  editor: 'editor',
+  viewer: 'viewer',
+} as const;
+
+export interface ProjectMember {
+  id: number;
+  projectId: number;
+  userId: string;
+  email: string;
+  role: ProjectMemberRole;
+  createdAt: string;
+}
+
+export type InviteMemberBodyRole = typeof InviteMemberBodyRole[keyof typeof InviteMemberBodyRole];
+
+
+export const InviteMemberBodyRole = {
+  editor: 'editor',
+  viewer: 'viewer',
+} as const;
+
+export interface InviteMemberBody {
+  email: string;
+  role: InviteMemberBodyRole;
 }
 

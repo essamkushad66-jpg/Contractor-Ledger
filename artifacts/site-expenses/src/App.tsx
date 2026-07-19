@@ -10,6 +10,8 @@ import ProjectDetails from '@/pages/project-details';
 import Landing from '@/pages/landing';
 import SignInPage from '@/pages/sign-in';
 import SignUpPage from '@/pages/sign-up';
+import { ThemeProvider } from '@/components/theme-provider';
+import { ThemeToggle } from '@/components/theme-toggle';
 
 // REQUIRED — copy verbatim. Resolves the key from window.location.hostname so the
 // same build serves multiple Clerk custom domains. Do not inline the env var, leave
@@ -234,21 +236,26 @@ function ClerkProviderWithRoutes() {
       routerReplace={(to) => setLocation(stripBase(to), { replace: true })}
     >
       <QueryClientProvider client={queryClient}>
-        <ClerkQueryClientCacheInvalidator />
-        <div className="min-h-[100dvh] bg-background text-foreground font-sans selection:bg-primary/20 selection:text-primary">
-          <Show when="signed-in">
-            <header className="bg-primary text-primary-foreground shadow-md sticky top-0 z-30 print:hidden">
-              <div className="max-w-3xl mx-auto px-4 md:px-6 py-4 flex items-center justify-between">
-                <h1 className="text-xl font-bold tracking-tight">إدارة مشاريع البناء</h1>
-                <LogoutButton />
-              </div>
-            </header>
-          </Show>
-          <main>
-            <Router />
-          </main>
-        </div>
-        <Toaster position="top-center" dir="rtl" />
+        <ThemeProvider defaultTheme="light" storageKey="contractor-ledger-theme">
+          <ClerkQueryClientCacheInvalidator />
+          <div className="min-h-[100dvh] bg-background text-foreground font-sans selection:bg-primary/20 selection:text-primary">
+            <Show when="signed-in">
+              <header className="bg-primary text-primary-foreground shadow-md sticky top-0 z-30 print:hidden">
+                <div className="max-w-3xl mx-auto px-4 md:px-6 py-4 flex items-center justify-between">
+                  <h1 className="text-xl font-bold tracking-tight">إدارة مشاريع البناء</h1>
+                  <div className="flex items-center gap-2">
+                    <ThemeToggle />
+                    <LogoutButton />
+                  </div>
+                </div>
+              </header>
+            </Show>
+            <main>
+              <Router />
+            </main>
+          </div>
+          <Toaster position="top-center" dir="rtl" />
+        </ThemeProvider>
       </QueryClientProvider>
     </ClerkProvider>
   );

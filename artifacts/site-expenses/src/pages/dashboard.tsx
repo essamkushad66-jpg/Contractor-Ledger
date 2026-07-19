@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Plus, Building2, MapPin, Wallet, ArrowUpRight, ArrowDownRight, Loader2 } from "lucide-react";
 import { Link } from "wouter";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { ProjectDialog } from "@/components/project-dialog";
 
 export default function Dashboard() {
@@ -67,7 +68,36 @@ export default function Dashboard() {
         </div>
       )}
 
-      <div className="space-y-4">
+      {!isLoadingProjects && Array.isArray(projects) && projects.length > 0 && (
+        <Card className="p-4 pt-6 mt-6 overflow-x-auto shadow-sm">
+          <h3 className="text-lg font-bold mb-6 text-center">التحليل المالي للمشاريع</h3>
+          <div className="h-72 min-w-[500px]" dir="ltr">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={projects.map(p => ({
+                  name: p.name,
+                  "المصروف": p.totalSpent,
+                  "المستلم": p.totalReceived,
+                }))}
+                margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
+                <XAxis dataKey="name" tick={{ fill: 'hsl(var(--muted-foreground))' }} />
+                <YAxis tick={{ fill: 'hsl(var(--muted-foreground))' }} tickFormatter={(val) => `${val/1000}k`} />
+                <Tooltip 
+                  contentStyle={{ backgroundColor: 'hsl(var(--card))', borderColor: 'hsl(var(--border))', borderRadius: '8px', color: 'hsl(var(--foreground))' }}
+                  itemStyle={{ fontWeight: 'bold' }}
+                />
+                <Legend wrapperStyle={{ paddingTop: '20px' }} />
+                <Bar dataKey="المصروف" fill="hsl(var(--destructive))" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="المستلم" fill="hsl(var(--success))" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </Card>
+      )}
+
+      <div className="space-y-4 mt-8">
         <h3 className="text-xl font-bold">المشاريع الحالية</h3>
         
         {isLoadingProjects ? (

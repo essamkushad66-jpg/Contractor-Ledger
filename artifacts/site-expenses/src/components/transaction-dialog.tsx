@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,9 +6,9 @@ import { Label } from "@/components/ui/label";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useCreateProjectTransaction, useUpdateTransaction, getListProjectTransactionsQueryKey, getGetProjectQueryKey, getListProjectsQueryKey, getGetDashboardSummaryQueryKey } from "@workspace/api-client-react";
+import { useCreateProjectTransaction, useUpdateTransaction, getListProjectTransactionsQueryKey, getGetProjectQueryKey, getListProjectsQueryKey, getGetDashboardSummaryQueryKey, requestUploadUrl } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Loader2 } from "lucide-react";
+import { Loader2, Camera, X } from "lucide-react";
 import { toast } from "sonner";
 
 const transactionSchema = z.object({
@@ -16,6 +16,7 @@ const transactionSchema = z.object({
   amount: z.coerce.number().min(0.01, "المبلغ يجب أن يكون أكبر من 0"),
   description: z.string().min(1, "الوصف مطلوب"),
   date: z.string().min(1, "التاريخ مطلوب"),
+  receiptPath: z.string().optional(),
 });
 
 type TransactionFormData = z.infer<typeof transactionSchema>;
@@ -46,9 +47,14 @@ export function TransactionDialog({
     }
   });
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+
   // Reset form when dialog opens/closes or type changes
   useEffect(() => {
     if (open) {
+      setReceiptFile(null);
       form.reset(defaultValues || {
         type,
         amount: "" as unknown as number,
@@ -58,7 +64,7 @@ export function TransactionDialog({
     }
   }, [open, defaultValues, type, form]);
 
-  const onSubmit = (values: TransactionFormData) => {
+  const onSubmit = async (values: TransactionFormData) => {
     const onSuccess = () => {
       queryClient.invalidateQueries({ queryKey: getListProjectTransactionsQueryKey(projectId) });
       queryClient.invalidateQueries({ queryKey: getGetProjectQueryKey(projectId) });
@@ -67,6 +73,37 @@ export function TransactionDialog({
       onOpenChange(false);
       toast.success(isEdit ? "تم التعديل بنجاح" : "تم التسجيل بنجاح");
     };
+
+    try {
+      if (receiptFile) {
+        setIsUploading(true);
+        // 1. Get presigned URL
+        const { uploadURL, objectPath } = await requestUploadUrl({
+          name: receiptFile.name,
+          size: receiptFile.size,
+          contentType: receiptFile.type
+        });
+        
+        // 2. Upload file directly to R2
+        const uploadRes = await fetch(uploadURL, {
+          method: 'PUT',
+          body: receiptFile,
+          headers: {
+            'Content-Type': receiptFile.type,
+          }
+        });
+        
+        if (!uploadRes.ok) throw new Error("Upload failed");
+        
+        values.receiptPath = objectPath;
+      }
+    } catch (e) {
+      toast.error("فشل رفع الصورة. تأكد من إعدادات التخزين السحابي.");
+      setIsUploading(false);
+      return;
+    } finally {
+      setIsUploading(false);
+    }
 
     if (isEdit && transactionId) {
       updateMutation.mutate({ id: transactionId, data: values }, { onSuccess });
@@ -108,11 +145,55 @@ export function TransactionDialog({
             <Input type="date" {...form.register("date")} />
             {form.formState.errors.date && <p className="text-sm text-destructive">{form.formState.errors.date.message}</p>}
           </div>
+
+          <div className="space-y-2">
+            <Label>صورة الفاتورة / الإيصال (اختياري)</Label>
+            <input 
+              type="file" 
+              accept="image/*" 
+              className="hidden" 
+              ref={fileInputRef} 
+              onChange={(e) => {
+                if (e.target.files?.[0]) setReceiptFile(e.target.files[0]);
+              }}
+            />
+            {receiptFile || form.watch('receiptPath') ? (
+              <div className="flex items-center justify-between p-2 border rounded bg-muted/50">
+                <span className="text-sm truncate max-w-[200px]">
+                  {receiptFile ? receiptFile.name : 'صورة مرفقة مسبقاً'}
+                </span>
+                <Button 
+                  type="button" 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-6 w-6 text-destructive"
+                  onClick={() => {
+                    setReceiptFile(null);
+                    form.setValue('receiptPath', undefined);
+                    if (fileInputRef.current) fileInputRef.current.value = '';
+                  }}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <Button 
+                type="button" 
+                variant="outline" 
+                className="w-full border-dashed"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <Camera className="mr-2 h-4 w-4" />
+                إرفاق صورة
+              </Button>
+            )}
+          </div>
+
           <div className="pt-4 flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>إلغاء</Button>
-            <Button type="submit" disabled={isPending} variant={type === "deposit" ? "success" : "destructive"}>
-              {isPending && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
-              حفظ
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isPending || isUploading}>إلغاء</Button>
+            <Button type="submit" disabled={isPending || isUploading} variant={type === "deposit" ? "success" : "destructive"}>
+              {(isPending || isUploading) && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
+              {isUploading ? "جاري الرفع..." : "حفظ"}
             </Button>
           </div>
         </form>

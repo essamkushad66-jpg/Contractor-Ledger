@@ -29,7 +29,8 @@ export const ListProjectsResponseItem = zod.object({
   "totalReceived": zod.number().describe('Sum of all deposits received for this project'),
   "totalSpent": zod.number().describe('Sum of all expenses recorded for this project'),
   "balance": zod.number().describe('totalReceived minus totalSpent (money remaining in hand)'),
-  "createdAt": zod.coerce.date()
+  "createdAt": zod.coerce.date(),
+  "currentUserRole": zod.enum(['owner', 'editor', 'viewer']).describe('Role of the currently authenticated user in this project')
 })
 export const ListProjectsResponse = zod.array(ListProjectsResponseItem)
 
@@ -57,7 +58,8 @@ export const CreateProjectResponse = zod.object({
   "totalReceived": zod.number().describe('Sum of all deposits received for this project'),
   "totalSpent": zod.number().describe('Sum of all expenses recorded for this project'),
   "balance": zod.number().describe('totalReceived minus totalSpent (money remaining in hand)'),
-  "createdAt": zod.coerce.date()
+  "createdAt": zod.coerce.date(),
+  "currentUserRole": zod.enum(['owner', 'editor', 'viewer']).describe('Role of the currently authenticated user in this project')
 })
 
 
@@ -77,7 +79,8 @@ export const GetProjectResponse = zod.object({
   "totalReceived": zod.number().describe('Sum of all deposits received for this project'),
   "totalSpent": zod.number().describe('Sum of all expenses recorded for this project'),
   "balance": zod.number().describe('totalReceived minus totalSpent (money remaining in hand)'),
-  "createdAt": zod.coerce.date()
+  "createdAt": zod.coerce.date(),
+  "currentUserRole": zod.enum(['owner', 'editor', 'viewer']).describe('Role of the currently authenticated user in this project')
 })
 
 
@@ -108,7 +111,8 @@ export const UpdateProjectResponse = zod.object({
   "totalReceived": zod.number().describe('Sum of all deposits received for this project'),
   "totalSpent": zod.number().describe('Sum of all expenses recorded for this project'),
   "balance": zod.number().describe('totalReceived minus totalSpent (money remaining in hand)'),
-  "createdAt": zod.coerce.date()
+  "createdAt": zod.coerce.date(),
+  "currentUserRole": zod.enum(['owner', 'editor', 'viewer']).describe('Role of the currently authenticated user in this project')
 })
 
 
@@ -172,6 +176,57 @@ export const CreateProjectTransactionResponse = zod.object({
   "receiptPath": zod.string().nullish().describe('Object storage path to the uploaded receipt\/invoice PDF or image, if any.'),
   "createdAt": zod.coerce.date()
 })
+
+
+/**
+ * @summary List members of a project
+ */
+export const ListProjectMembersParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const ListProjectMembersResponseItem = zod.object({
+  "id": zod.number(),
+  "projectId": zod.number(),
+  "userId": zod.string(),
+  "email": zod.string(),
+  "role": zod.enum(['editor', 'viewer']),
+  "createdAt": zod.coerce.date()
+})
+export const ListProjectMembersResponse = zod.array(ListProjectMembersResponseItem)
+
+
+/**
+ * @summary Invite a user to a project by email
+ */
+export const InviteProjectMemberParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const InviteProjectMemberBody = zod.object({
+  "email": zod.string(),
+  "role": zod.enum(['editor', 'viewer'])
+})
+
+export const InviteProjectMemberResponse = zod.object({
+  "id": zod.number(),
+  "projectId": zod.number(),
+  "userId": zod.string(),
+  "email": zod.string(),
+  "role": zod.enum(['editor', 'viewer']),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Remove a member from a project
+ */
+export const RemoveProjectMemberParams = zod.object({
+  "id": zod.coerce.number(),
+  "userId": zod.coerce.string()
+})
+
+export const RemoveProjectMemberResponse = zod.void()
 
 
 /**
@@ -249,7 +304,7 @@ export const RequestUploadUrlBody = zod.object({
 
 
 export const RequestUploadUrlResponse = zod.object({
-  "uploadURL": zod.string().url().describe('Presigned GCS URL for PUT upload.'),
+  "uploadURL": zod.string().describe('Presigned GCS URL for PUT upload.'),
   "objectPath": zod.string().describe('Normalized object path (e.g. `\/objects\/uploads\/uuid`). Store this in your database.'),
   "metadata": zod.object({
   "name": zod.string().min(1).describe('Original file name.'),

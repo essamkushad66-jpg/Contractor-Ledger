@@ -5,6 +5,7 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { ProjectCurrentUserRole } from './projectCurrentUserRole';
 
 export interface Project {
   id: number;
@@ -21,4 +22,6 @@ export interface Project {
   /** totalReceived minus totalSpent (money remaining in hand) */
   balance: number;
   createdAt: Date;
+  /** Role of the currently authenticated user in this project */
+  currentUserRole: ProjectCurrentUserRole;
 }

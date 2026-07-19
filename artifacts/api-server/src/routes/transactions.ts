@@ -1,6 +1,6 @@
 import { Hono } from "hono";
-import { and, eq } from "drizzle-orm";
-import { db, projectsTable, transactionsTable } from "@workspace/db";
+import { and, eq, or, inArray } from "drizzle-orm";
+import { db, projectsTable, transactionsTable, projectMembersTable } from "@workspace/db";
 import {
   CreateProjectTransactionBody,
   CreateProjectTransactionParams,
@@ -24,26 +24,25 @@ const router = new Hono<Env>();
 
 router.use("*", requireAuth);
 
+async function checkProjectAccess(projectId: number, userId: string) {
+  const [project] = await db.select().from(projectsTable).where(eq(projectsTable.id, projectId));
+  if (!project) return { project: null, role: null };
+  if (project.userId === userId) return { project, role: "owner" };
+  
+  const [member] = await db.select().from(projectMembersTable)
+    .where(and(eq(projectMembersTable.projectId, projectId), eq(projectMembersTable.userId, userId)));
+    
+  if (member) return { project, role: member.role };
+  return { project: null, role: null };
+}
+
 router.get("/projects/:id/transactions", async (c) => {
   const userId = c.get("userId");
   const params = ListProjectTransactionsParams.safeParse(c.req.param());
-  if (!params.success) {
-    return c.json({ error: params.error.message }, 400);
-  }
+  if (!params.success) return c.json({ error: params.error.message }, 400);
 
-  const [project] = await db
-    .select()
-    .from(projectsTable)
-    .where(
-      and(
-        eq(projectsTable.id, params.data.id),
-        eq(projectsTable.userId, userId),
-      ),
-    );
-
-  if (!project) {
-    return c.json({ error: "Project not found" }, 404);
-  }
+  const { project, role } = await checkProjectAccess(params.data.id, userId);
+  if (!project || !role) return c.json({ error: "Project not found" }, 404);
 
   const transactions = await db
     .select()
@@ -61,29 +60,15 @@ router.get("/projects/:id/transactions", async (c) => {
 router.post("/projects/:id/transactions", async (c) => {
   const userId = c.get("userId");
   const params = CreateProjectTransactionParams.safeParse(c.req.param());
-  if (!params.success) {
-    return c.json({ error: params.error.message }, 400);
-  }
+  if (!params.success) return c.json({ error: params.error.message }, 400);
 
   const body = await c.req.json().catch(() => ({}));
   const parsed = CreateProjectTransactionBody.safeParse(body);
-  if (!parsed.success) {
-    return c.json({ error: parsed.error.message }, 400);
-  }
+  if (!parsed.success) return c.json({ error: parsed.error.message }, 400);
 
-  const [project] = await db
-    .select()
-    .from(projectsTable)
-    .where(
-      and(
-        eq(projectsTable.id, params.data.id),
-        eq(projectsTable.userId, userId),
-      ),
-    );
-
-  if (!project) {
-    return c.json({ error: "Project not found" }, 404);
-  }
+  const { project, role } = await checkProjectAccess(params.data.id, userId);
+  if (!project || !role) return c.json({ error: "Project not found" }, 404);
+  if (role === "viewer") return c.json({ error: "Forbidden. Viewers cannot add transactions." }, 403);
 
   const dateStr = parsed.data.date.toISOString().slice(0, 10);
   const [transaction] = await db
@@ -96,9 +81,7 @@ router.post("/projects/:id/transactions", async (c) => {
     })
     .returning();
 
-  if (!transaction) {
-    return c.json({ error: "Failed to create transaction" }, 400);
-  }
+  if (!transaction) return c.json({ error: "Failed to create transaction" }, 400);
 
   return c.json(
     CreateProjectTransactionResponse.parse({
@@ -109,40 +92,30 @@ router.post("/projects/:id/transactions", async (c) => {
   );
 });
 
-async function findOwnedTransaction(transactionId: number, userId: string) {
+async function findTransactionWithRole(transactionId: number, userId: string) {
   const [row] = await db
-    .select({ transaction: transactionsTable })
+    .select({ transaction: transactionsTable, projectId: transactionsTable.projectId })
     .from(transactionsTable)
-    .innerJoin(
-      projectsTable,
-      eq(transactionsTable.projectId, projectsTable.id),
-    )
-    .where(
-      and(
-        eq(transactionsTable.id, transactionId),
-        eq(projectsTable.userId, userId),
-      ),
-    );
-  return row?.transaction;
+    .where(eq(transactionsTable.id, transactionId));
+    
+  if (!row) return { transaction: null, role: null };
+  
+  const { project, role } = await checkProjectAccess(row.projectId, userId);
+  return { transaction: row.transaction, role };
 }
 
 router.patch("/transactions/:id", async (c) => {
   const userId = c.get("userId");
   const params = UpdateTransactionParams.safeParse(c.req.param());
-  if (!params.success) {
-    return c.json({ error: params.error.message }, 400);
-  }
+  if (!params.success) return c.json({ error: params.error.message }, 400);
 
   const body = await c.req.json().catch(() => ({}));
   const parsed = UpdateTransactionBody.safeParse(body);
-  if (!parsed.success) {
-    return c.json({ error: parsed.error.message }, 400);
-  }
+  if (!parsed.success) return c.json({ error: parsed.error.message }, 400);
 
-  const owned = await findOwnedTransaction(params.data.id, userId);
-  if (!owned) {
-    return c.json({ error: "Transaction not found" }, 404);
-  }
+  const { transaction: owned, role } = await findTransactionWithRole(params.data.id, userId);
+  if (!owned || !role) return c.json({ error: "Transaction not found" }, 404);
+  if (role === "viewer") return c.json({ error: "Forbidden" }, 403);
 
   const { date, amount, ...rest } = parsed.data;
   const [transaction] = await db
@@ -155,9 +128,7 @@ router.patch("/transactions/:id", async (c) => {
     .where(eq(transactionsTable.id, params.data.id))
     .returning();
 
-  if (!transaction) {
-    return c.json({ error: "Transaction not found" }, 404);
-  }
+  if (!transaction) return c.json({ error: "Transaction not found" }, 404);
 
   return c.json(
     UpdateTransactionResponse.parse({
@@ -170,14 +141,11 @@ router.patch("/transactions/:id", async (c) => {
 router.delete("/transactions/:id", async (c) => {
   const userId = c.get("userId");
   const params = DeleteTransactionParams.safeParse(c.req.param());
-  if (!params.success) {
-    return c.json({ error: params.error.message }, 400);
-  }
+  if (!params.success) return c.json({ error: params.error.message }, 400);
 
-  const owned = await findOwnedTransaction(params.data.id, userId);
-  if (!owned) {
-    return c.json({ error: "Transaction not found" }, 404);
-  }
+  const { transaction: owned, role } = await findTransactionWithRole(params.data.id, userId);
+  if (!owned || !role) return c.json({ error: "Transaction not found" }, 404);
+  if (role === "viewer") return c.json({ error: "Forbidden" }, 403);
 
   await db
     .delete(transactionsTable)
