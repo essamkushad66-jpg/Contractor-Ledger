@@ -87,4 +87,18 @@
     @apply font-sans antialiased bg-background text-foreground;
     direction: rtl;
   }
+
+  /* Optimize PDF printing for A4 on both mobile and desktop */
+  @page {
+    size: A4 portrait;
+    margin: 1.5cm;
+  }
+
+  @media print {
+    body {
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+      background-color: white;
+    }
+  }
 }
