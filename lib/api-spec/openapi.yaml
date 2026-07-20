@@ -174,6 +174,39 @@ paths:
         "404":
           description: Not found
 
+  /projects/{id}/transactions/bulk:
+    post:
+      operationId: createProjectTransactionsBulk
+      tags: [transactions]
+      summary: Add multiple transactions to a project at once
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: "#/components/schemas/TransactionInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Transaction"
+        "400":
+          description: Bad Request
+        "404":
+          description: Not found
+
   /projects/{id}/members:
     get:
       operationId: listProjectMembers
@@ -554,6 +587,19 @@ components:
           type: string
           nullable: true
           description: Object storage path to the uploaded receipt/invoice PDF or image, if any.
+        shopName:
+          type: string
+          nullable: true
+          description: Name of the shop or supplier
+        personName:
+          type: string
+          nullable: true
+          description: Name of the person giving or receiving the money
+        paymentMethod:
+          type: string
+          enum: [cash, transfer, card, check]
+          nullable: true
+          default: cash
         createdAt:
           type: string
           format: date-time
@@ -582,6 +628,17 @@ components:
           type: string
           nullable: true
           description: Object storage path to the uploaded receipt/invoice PDF or image, if any.
+        shopName:
+          type: string
+          nullable: true
+        personName:
+          type: string
+          nullable: true
+        paymentMethod:
+          type: string
+          enum: [cash, transfer, card, check]
+          nullable: true
+          default: cash
 
     TransactionUpdate:
       type: object
@@ -602,6 +659,16 @@ components:
           type: string
           nullable: true
           description: Object storage path to the uploaded receipt/invoice PDF or image, if any.
+        shopName:
+          type: string
+          nullable: true
+        personName:
+          type: string
+          nullable: true
+        paymentMethod:
+          type: string
+          enum: [cash, transfer, card, check]
+          nullable: true
 
     DashboardSummary:
       type: object

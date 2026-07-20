@@ -8,6 +8,9 @@ export function exportTransactionsToCSV(project: Project, transactions: Transact
     "الوصف",
     "النوع",
     "المبلغ",
+    "اسم المحل",
+    "اسم الشخص",
+    "طريقة الدفع",
     "تاريخ التسجيل"
   ];
 
@@ -17,6 +20,9 @@ export function exportTransactionsToCSV(project: Project, transactions: Transact
     `"${tx.description.replace(/"/g, '""')}"`, // Escape quotes
     tx.type === "deposit" ? "مستلمة (إيداع)" : "مصروف (سحب)",
     tx.amount,
+    `"${(tx.shopName || "").replace(/"/g, '""')}"`,
+    `"${(tx.personName || "").replace(/"/g, '""')}"`,
+    tx.paymentMethod === 'cash' ? 'نقدي' : tx.paymentMethod === 'transfer' ? 'تحويل بنكي' : tx.paymentMethod === 'card' ? 'بطاقة' : tx.paymentMethod === 'check' ? 'صك' : 'نقدي',
     new Date(tx.createdAt).toLocaleDateString("ar-LY").replace(/,/g, '')
   ]);
 

@@ -21,6 +21,9 @@ export const transactionsTable = pgTable("transactions", {
   description: text("description").notNull(),
   date: date("date", { mode: "string" }).notNull(),
   receiptPath: text("receipt_path"),
+  shopName: text("shop_name"),
+  personName: text("person_name"),
+  paymentMethod: text("payment_method", { enum: ["cash", "transfer", "card", "check"] }).default("cash"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

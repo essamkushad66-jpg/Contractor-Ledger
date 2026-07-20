@@ -96,6 +96,16 @@ export const TransactionType = {
   expense: 'expense',
 } as const;
 
+export type TransactionPaymentMethod = typeof TransactionPaymentMethod[keyof typeof TransactionPaymentMethod] | null;
+
+
+export const TransactionPaymentMethod = {
+  cash: 'cash',
+  transfer: 'transfer',
+  card: 'card',
+  check: 'check',
+} as const;
+
 export interface Transaction {
   id: number;
   projectId: number;
@@ -105,6 +115,11 @@ export interface Transaction {
   date: string;
   /** Object storage path to the uploaded receipt/invoice PDF or image, if any. */
   receiptPath?: string | null;
+  /** Name of the shop or supplier */
+  shopName?: string | null;
+  /** Name of the person giving or receiving the money */
+  personName?: string | null;
+  paymentMethod?: TransactionPaymentMethod;
   createdAt: string;
 }
 
@@ -116,6 +131,16 @@ export const TransactionInputType = {
   expense: 'expense',
 } as const;
 
+export type TransactionInputPaymentMethod = typeof TransactionInputPaymentMethod[keyof typeof TransactionInputPaymentMethod] | null;
+
+
+export const TransactionInputPaymentMethod = {
+  cash: 'cash',
+  transfer: 'transfer',
+  card: 'card',
+  check: 'check',
+} as const;
+
 export interface TransactionInput {
   type: TransactionInputType;
   /** @exclusiveMinimum 0 */
@@ -125,6 +150,9 @@ export interface TransactionInput {
   date: string;
   /** Object storage path to the uploaded receipt/invoice PDF or image, if any. */
   receiptPath?: string | null;
+  shopName?: string | null;
+  personName?: string | null;
+  paymentMethod?: TransactionInputPaymentMethod;
 }
 
 export type TransactionUpdateType = typeof TransactionUpdateType[keyof typeof TransactionUpdateType];
@@ -133,6 +161,16 @@ export type TransactionUpdateType = typeof TransactionUpdateType[keyof typeof Tr
 export const TransactionUpdateType = {
   deposit: 'deposit',
   expense: 'expense',
+} as const;
+
+export type TransactionUpdatePaymentMethod = typeof TransactionUpdatePaymentMethod[keyof typeof TransactionUpdatePaymentMethod] | null;
+
+
+export const TransactionUpdatePaymentMethod = {
+  cash: 'cash',
+  transfer: 'transfer',
+  card: 'card',
+  check: 'check',
 } as const;
 
 export interface TransactionUpdate {
@@ -144,6 +182,9 @@ export interface TransactionUpdate {
   date?: string;
   /** Object storage path to the uploaded receipt/invoice PDF or image, if any. */
   receiptPath?: string | null;
+  shopName?: string | null;
+  personName?: string | null;
+  paymentMethod?: TransactionUpdatePaymentMethod;
 }
 
 export interface DashboardSummary {

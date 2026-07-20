@@ -133,6 +133,8 @@ export const ListProjectTransactionsParams = zod.object({
   "id": zod.coerce.number()
 })
 
+export const listProjectTransactionsResponsePaymentMethodDefault = `cash`;
+
 export const ListProjectTransactionsResponseItem = zod.object({
   "id": zod.number(),
   "projectId": zod.number(),
@@ -141,6 +143,9 @@ export const ListProjectTransactionsResponseItem = zod.object({
   "description": zod.string(),
   "date": zod.coerce.date(),
   "receiptPath": zod.string().nullish().describe('Object storage path to the uploaded receipt\/invoice PDF or image, if any.'),
+  "shopName": zod.string().nullish().describe('Name of the shop or supplier'),
+  "personName": zod.string().nullish().describe('Name of the person giving or receiving the money'),
+  "paymentMethod": zod.enum(['cash', 'transfer', 'card', 'check']).nullish().default(listProjectTransactionsResponsePaymentMethodDefault),
   "createdAt": zod.coerce.date()
 })
 export const ListProjectTransactionsResponse = zod.array(ListProjectTransactionsResponseItem)
@@ -156,15 +161,20 @@ export const CreateProjectTransactionParams = zod.object({
 export const createProjectTransactionBodyAmountExclusiveMin = 0;
 
 
-
+export const createProjectTransactionBodyPaymentMethodDefault = `cash`;
 
 export const CreateProjectTransactionBody = zod.object({
   "type": zod.enum(['deposit', 'expense']),
   "amount": zod.number().gt(createProjectTransactionBodyAmountExclusiveMin),
   "description": zod.string().min(1),
   "date": zod.coerce.date(),
-  "receiptPath": zod.string().nullish().describe('Object storage path to the uploaded receipt\/invoice PDF or image, if any.')
+  "receiptPath": zod.string().nullish().describe('Object storage path to the uploaded receipt\/invoice PDF or image, if any.'),
+  "shopName": zod.string().nullish(),
+  "personName": zod.string().nullish(),
+  "paymentMethod": zod.enum(['cash', 'transfer', 'card', 'check']).nullish().default(createProjectTransactionBodyPaymentMethodDefault)
 })
+
+export const createProjectTransactionResponsePaymentMethodDefault = `cash`;
 
 export const CreateProjectTransactionResponse = zod.object({
   "id": zod.number(),
@@ -174,8 +184,53 @@ export const CreateProjectTransactionResponse = zod.object({
   "description": zod.string(),
   "date": zod.coerce.date(),
   "receiptPath": zod.string().nullish().describe('Object storage path to the uploaded receipt\/invoice PDF or image, if any.'),
+  "shopName": zod.string().nullish().describe('Name of the shop or supplier'),
+  "personName": zod.string().nullish().describe('Name of the person giving or receiving the money'),
+  "paymentMethod": zod.enum(['cash', 'transfer', 'card', 'check']).nullish().default(createProjectTransactionResponsePaymentMethodDefault),
   "createdAt": zod.coerce.date()
 })
+
+
+/**
+ * @summary Add multiple transactions to a project at once
+ */
+export const CreateProjectTransactionsBulkParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const createProjectTransactionsBulkBodyAmountExclusiveMin = 0;
+
+
+export const createProjectTransactionsBulkBodyPaymentMethodDefault = `cash`;
+
+export const CreateProjectTransactionsBulkBodyItem = zod.object({
+  "type": zod.enum(['deposit', 'expense']),
+  "amount": zod.number().gt(createProjectTransactionsBulkBodyAmountExclusiveMin),
+  "description": zod.string().min(1),
+  "date": zod.coerce.date(),
+  "receiptPath": zod.string().nullish().describe('Object storage path to the uploaded receipt\/invoice PDF or image, if any.'),
+  "shopName": zod.string().nullish(),
+  "personName": zod.string().nullish(),
+  "paymentMethod": zod.enum(['cash', 'transfer', 'card', 'check']).nullish().default(createProjectTransactionsBulkBodyPaymentMethodDefault)
+})
+export const CreateProjectTransactionsBulkBody = zod.array(CreateProjectTransactionsBulkBodyItem)
+
+export const createProjectTransactionsBulkResponsePaymentMethodDefault = `cash`;
+
+export const CreateProjectTransactionsBulkResponseItem = zod.object({
+  "id": zod.number(),
+  "projectId": zod.number(),
+  "type": zod.enum(['deposit', 'expense']),
+  "amount": zod.number(),
+  "description": zod.string(),
+  "date": zod.coerce.date(),
+  "receiptPath": zod.string().nullish().describe('Object storage path to the uploaded receipt\/invoice PDF or image, if any.'),
+  "shopName": zod.string().nullish().describe('Name of the shop or supplier'),
+  "personName": zod.string().nullish().describe('Name of the person giving or receiving the money'),
+  "paymentMethod": zod.enum(['cash', 'transfer', 'card', 'check']).nullish().default(createProjectTransactionsBulkResponsePaymentMethodDefault),
+  "createdAt": zod.coerce.date()
+})
+export const CreateProjectTransactionsBulkResponse = zod.array(CreateProjectTransactionsBulkResponseItem)
 
 
 /**
@@ -246,8 +301,13 @@ export const UpdateTransactionBody = zod.object({
   "amount": zod.number().gt(updateTransactionBodyAmountExclusiveMin).optional(),
   "description": zod.string().min(1).optional(),
   "date": zod.coerce.date().optional(),
-  "receiptPath": zod.string().nullish().describe('Object storage path to the uploaded receipt\/invoice PDF or image, if any.')
+  "receiptPath": zod.string().nullish().describe('Object storage path to the uploaded receipt\/invoice PDF or image, if any.'),
+  "shopName": zod.string().nullish(),
+  "personName": zod.string().nullish(),
+  "paymentMethod": zod.enum(['cash', 'transfer', 'card', 'check']).nullish()
 })
+
+export const updateTransactionResponsePaymentMethodDefault = `cash`;
 
 export const UpdateTransactionResponse = zod.object({
   "id": zod.number(),
@@ -257,6 +317,9 @@ export const UpdateTransactionResponse = zod.object({
   "description": zod.string(),
   "date": zod.coerce.date(),
   "receiptPath": zod.string().nullish().describe('Object storage path to the uploaded receipt\/invoice PDF or image, if any.'),
+  "shopName": zod.string().nullish().describe('Name of the shop or supplier'),
+  "personName": zod.string().nullish().describe('Name of the person giving or receiving the money'),
+  "paymentMethod": zod.enum(['cash', 'transfer', 'card', 'check']).nullish().default(updateTransactionResponsePaymentMethodDefault),
   "createdAt": zod.coerce.date()
 })
 

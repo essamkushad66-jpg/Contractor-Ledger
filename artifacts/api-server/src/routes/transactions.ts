@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { z } from "zod";
 import { and, eq, or, inArray } from "drizzle-orm";
 import { db, projectsTable, transactionsTable, projectMembersTable } from "@workspace/db";
 import {
@@ -88,6 +89,42 @@ router.post("/projects/:id/transactions", async (c) => {
       ...transaction,
       amount: Number(transaction.amount),
     }),
+    201
+  );
+});
+
+router.post("/projects/:id/transactions/bulk", async (c) => {
+  const userId = c.get("userId");
+  const params = CreateProjectTransactionParams.safeParse(c.req.param());
+  if (!params.success) return c.json({ error: params.error.message }, 400);
+
+  const body = await c.req.json().catch(() => ([]));
+  const parsed = z.array(CreateProjectTransactionBody).safeParse(body);
+  if (!parsed.success) return c.json({ error: parsed.error.message }, 400);
+
+  const { project, role } = await checkProjectAccess(params.data.id, userId);
+  if (!project || !role) return c.json({ error: "Project not found" }, 404);
+  if (role === "viewer") return c.json({ error: "Forbidden. Viewers cannot add transactions." }, 403);
+
+  if (parsed.data.length === 0) return c.json([], 201);
+
+  const valuesToInsert = parsed.data.map((tx: any) => ({
+    ...tx,
+    date: tx.date.toISOString().slice(0, 10),
+    amount: String(tx.amount),
+    projectId: params.data.id,
+  }));
+
+  const inserted = await db
+    .insert(transactionsTable)
+    .values(valuesToInsert)
+    .returning();
+
+  return c.json(
+    inserted.map(t => CreateProjectTransactionResponse.parse({
+      ...t,
+      amount: Number(t.amount),
+    })),
     201
   );
 });

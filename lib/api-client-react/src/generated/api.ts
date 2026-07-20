@@ -657,6 +657,78 @@ export const useCreateProjectTransaction = <TError = ErrorType<void>,
       return useMutation(getCreateProjectTransactionMutationOptions(options));
     }
 
+export const getCreateProjectTransactionsBulkUrl = (id: number,) => {
+
+
+
+
+  return `/api/projects/${id}/transactions/bulk`
+}
+
+/**
+ * @summary Add multiple transactions to a project at once
+ */
+export const createProjectTransactionsBulk = async (id: number,
+    transactionInput: TransactionInput[], options?: RequestInit): Promise<Transaction[]> => {
+
+  return customFetch<Transaction[]>(getCreateProjectTransactionsBulkUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(transactionInput)
+  }
+);}
+
+
+
+
+
+export const getCreateProjectTransactionsBulkMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createProjectTransactionsBulk>>, TError,{id: number;data: BodyType<TransactionInput[]>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createProjectTransactionsBulk>>, TError,{id: number;data: BodyType<TransactionInput[]>}, TContext> => {
+
+const mutationKey = ['createProjectTransactionsBulk'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createProjectTransactionsBulk>>, {id: number;data: BodyType<TransactionInput[]>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  createProjectTransactionsBulk(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateProjectTransactionsBulkMutationResult = NonNullable<Awaited<ReturnType<typeof createProjectTransactionsBulk>>>
+    export type CreateProjectTransactionsBulkMutationBody = BodyType<TransactionInput[]>
+    export type CreateProjectTransactionsBulkMutationError = ErrorType<void>
+
+    /**
+ * @summary Add multiple transactions to a project at once
+ */
+export const useCreateProjectTransactionsBulk = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createProjectTransactionsBulk>>, TError,{id: number;data: BodyType<TransactionInput[]>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createProjectTransactionsBulk>>,
+        TError,
+        {id: number;data: BodyType<TransactionInput[]>},
+        TContext
+      > => {
+      return useMutation(getCreateProjectTransactionsBulkMutationOptions(options));
+    }
+
 export const getListProjectMembersUrl = (id: number,) => {
 
 

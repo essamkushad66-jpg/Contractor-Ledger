@@ -5,6 +5,7 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { TransactionUpdatePaymentMethod } from './transactionUpdatePaymentMethod';
 import type { TransactionUpdateType } from './transactionUpdateType';
 
 export interface TransactionUpdate {
@@ -16,4 +17,7 @@ export interface TransactionUpdate {
   date?: Date;
   /** Object storage path to the uploaded receipt/invoice PDF or image, if any. */
   receiptPath?: string | null;
+  shopName?: string | null;
+  personName?: string | null;
+  paymentMethod?: TransactionUpdatePaymentMethod;
 }

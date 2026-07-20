@@ -4,15 +4,19 @@ import { useGetProject, useListProjectTransactions, useDeleteProject, getListPro
 import { formatCurrency, formatDate } from "@/lib/format";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowUpRight, ArrowDownRight, Edit, Trash2, Building2, MapPin, Loader2, ArrowLeft, Printer, Download, Image as ImageIcon, Users } from "lucide-react";
+import { ArrowUpRight, ArrowDownRight, Edit, Trash2, Building2, MapPin, Loader2, ArrowLeft, Printer, Download, Image as ImageIcon, Users, Upload } from "lucide-react";
 import { Link } from "wouter";
 import { exportTransactionsToCSV } from "@/lib/export";
 import { customFetch } from "@workspace/api-client-react";
 import { ProjectDialog } from "@/components/project-dialog";
 import { TransactionDialog } from "@/components/transaction-dialog";
 import { MembersDialog } from "@/components/members-dialog";
+import { ImportDialog } from "@/components/import-dialog";
+import { PrintableReport } from "@/components/printable-report";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useQueryClient } from "@tanstack/react-query";
+import { useReactToPrint } from "react-to-print";
+import { useRef } from "react";
 import { toast } from "sonner";
 import { useDeleteTransaction, getListProjectTransactionsQueryKey, getGetProjectQueryKey } from "@workspace/api-client-react";
 
@@ -21,6 +25,7 @@ export default function ProjectDetails() {
   const projectId = Number(id);
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
+  const componentRef = useRef<HTMLDivElement>(null);
 
   const { data: project, isLoading: isLoadingProject } = useGetProject(projectId);
   const { data: transactions, isLoading: isLoadingTransactions } = useListProjectTransactions(projectId);
@@ -31,6 +36,7 @@ export default function ProjectDetails() {
   const [editProjectOpen, setEditProjectOpen] = useState(false);
   const [deleteProjectOpen, setDeleteProjectOpen] = useState(false);
   const [membersDialogOpen, setMembersDialogOpen] = useState(false);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
   
   const [transactionType, setTransactionType] = useState<"deposit" | "expense">("deposit");
   const [transactionDialogOpen, setTransactionDialogOpen] = useState(false);
@@ -86,6 +92,11 @@ export default function ProjectDetails() {
     }
   };
 
+  const handlePrint = useReactToPrint({
+    contentRef: componentRef,
+    documentTitle: project ? `تقرير_حركات_${project.name.replace(/\s+/g, "_")}` : "تقرير_حركات",
+  });
+
   if (isLoadingProject) {
     return <div className="flex justify-center items-center py-20"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
   }
@@ -96,14 +107,6 @@ export default function ProjectDetails() {
 
   return (
     <div className="space-y-6 pb-20">
-      {/* Print-only Report Header */}
-      <div className="hidden print:block mb-8 border-b-2 border-foreground pb-4">
-        <h1 className="text-3xl font-black mb-2">تقرير تفصيلي لمعاملات المشروع</h1>
-        <div className="flex justify-between text-sm text-muted-foreground font-bold mt-4">
-          <span>تاريخ الطباعة: {new Date().toLocaleDateString('ar-LY')}</span>
-          <span>بواسطة: المقاول ليدجر (Contractor Ledger)</span>
-        </div>
-      </div>
 
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -123,10 +126,15 @@ export default function ProjectDetails() {
           <Button variant="outline" size="icon" onClick={() => setMembersDialogOpen(true)} title="مشاركة المشروع">
             <Users className="h-4 w-4" />
           </Button>
+          {project.currentUserRole !== 'viewer' && (
+            <Button variant="outline" size="icon" onClick={() => setImportDialogOpen(true)} title="استيراد حركات (إكسيل / CSV)">
+              <Upload className="h-4 w-4" />
+            </Button>
+          )}
           <Button variant="outline" size="icon" onClick={() => exportTransactionsToCSV(project as any, transactions as any)} title="تصدير كملف إكسيل (CSV)">
             <Download className="h-4 w-4" />
           </Button>
-          <Button variant="outline" size="icon" onClick={() => window.print()} title="طباعة التقرير">
+          <Button variant="outline" size="icon" onClick={() => handlePrint()} title="طباعة التقرير">
             <Printer className="h-4 w-4" />
           </Button>
           {project.currentUserRole !== 'viewer' && (
@@ -197,7 +205,14 @@ export default function ProjectDetails() {
                   </div>
                   <div>
                     <p className="font-bold">{tx.description}</p>
-                    <p className="text-xs text-muted-foreground">{formatDate(tx.date)}</p>
+                    <p className="text-xs text-muted-foreground flex items-center gap-2 mt-0.5">
+                      <span>{formatDate(tx.date)}</span>
+                      {tx.paymentMethod && (
+                        <span>• {tx.paymentMethod === 'cash' ? 'نقدي' : tx.paymentMethod === 'transfer' ? 'تحويل بنكي' : tx.paymentMethod === 'card' ? 'بطاقة' : 'صك'}</span>
+                      )}
+                      {tx.shopName && <span className="opacity-75">• 🏪 {tx.shopName}</span>}
+                      {tx.personName && <span className="opacity-75">• 👤 {tx.personName}</span>}
+                    </p>
                   </div>
                 </div>
                 
@@ -218,7 +233,10 @@ export default function ProjectDetails() {
                           type: tx.type,
                           amount: tx.amount,
                           description: tx.description,
-                          date: tx.date.split('T')[0]
+                          date: tx.date.split('T')[0],
+                          shopName: tx.shopName || "",
+                          personName: tx.personName || "",
+                          paymentMethod: tx.paymentMethod || "cash"
                         })}>
                           <Edit className="h-3.5 w-3.5" />
                         </Button>
@@ -281,6 +299,20 @@ export default function ProjectDetails() {
         onOpenChange={setMembersDialogOpen}
         currentUserRole={project.currentUserRole as "owner" | "editor" | "viewer"}
       />
+
+      <ImportDialog
+        projectId={projectId}
+        open={importDialogOpen}
+        onOpenChange={setImportDialogOpen}
+      />
+
+      <div style={{ display: "none" }}>
+        <PrintableReport 
+          ref={componentRef} 
+          project={project as any} 
+          transactions={(transactions || []) as any} 
+        />
+      </div>
     </div>
   );
 }
