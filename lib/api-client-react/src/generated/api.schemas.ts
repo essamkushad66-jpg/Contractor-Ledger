@@ -120,6 +120,10 @@ export interface Transaction {
   /** Name of the person giving or receiving the money */
   personName?: string | null;
   paymentMethod?: TransactionPaymentMethod;
+  /** Percentage of deduction (e.g. 10.00) */
+  deductionPercentage?: number | null;
+  /** Reason for deduction (e.g. نسبة التوريد) */
+  deductionReason?: string | null;
   createdAt: string;
 }
 
@@ -153,6 +157,8 @@ export interface TransactionInput {
   shopName?: string | null;
   personName?: string | null;
   paymentMethod?: TransactionInputPaymentMethod;
+  deductionPercentage?: number | null;
+  deductionReason?: string | null;
 }
 
 export type TransactionUpdateType = typeof TransactionUpdateType[keyof typeof TransactionUpdateType];
@@ -185,6 +191,8 @@ export interface TransactionUpdate {
   shopName?: string | null;
   personName?: string | null;
   paymentMethod?: TransactionUpdatePaymentMethod;
+  deductionPercentage?: number | null;
+  deductionReason?: string | null;
 }
 
 export interface DashboardSummary {

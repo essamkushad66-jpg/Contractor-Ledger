@@ -20,4 +20,6 @@ export interface TransactionInput {
   shopName?: string | null;
   personName?: string | null;
   paymentMethod?: TransactionInputPaymentMethod;
+  deductionPercentage?: number | null;
+  deductionReason?: string | null;
 }

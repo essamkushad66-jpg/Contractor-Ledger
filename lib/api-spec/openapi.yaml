@@ -600,6 +600,14 @@ components:
           enum: [cash, transfer, card, check]
           nullable: true
           default: cash
+        deductionPercentage:
+          type: number
+          nullable: true
+          description: Percentage of deduction (e.g. 10.00)
+        deductionReason:
+          type: string
+          nullable: true
+          description: Reason for deduction (e.g. نسبة التوريد)
         createdAt:
           type: string
           format: date-time
@@ -639,6 +647,12 @@ components:
           enum: [cash, transfer, card, check]
           nullable: true
           default: cash
+        deductionPercentage:
+          type: number
+          nullable: true
+        deductionReason:
+          type: string
+          nullable: true
 
     TransactionUpdate:
       type: object
@@ -668,6 +682,12 @@ components:
         paymentMethod:
           type: string
           enum: [cash, transfer, card, check]
+          nullable: true
+        deductionPercentage:
+          type: number
+          nullable: true
+        deductionReason:
+          type: string
           nullable: true
 
     DashboardSummary:

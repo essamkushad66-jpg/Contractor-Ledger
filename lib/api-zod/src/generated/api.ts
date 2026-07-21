@@ -146,6 +146,8 @@ export const ListProjectTransactionsResponseItem = zod.object({
   "shopName": zod.string().nullish().describe('Name of the shop or supplier'),
   "personName": zod.string().nullish().describe('Name of the person giving or receiving the money'),
   "paymentMethod": zod.enum(['cash', 'transfer', 'card', 'check']).nullish().default(listProjectTransactionsResponsePaymentMethodDefault),
+  "deductionPercentage": zod.number().nullish().describe('Percentage of deduction (e.g. 10.00)'),
+  "deductionReason": zod.string().nullish().describe('Reason for deduction (e.g. نسبة التوريد)'),
   "createdAt": zod.coerce.date()
 })
 export const ListProjectTransactionsResponse = zod.array(ListProjectTransactionsResponseItem)
@@ -171,7 +173,9 @@ export const CreateProjectTransactionBody = zod.object({
   "receiptPath": zod.string().nullish().describe('Object storage path to the uploaded receipt\/invoice PDF or image, if any.'),
   "shopName": zod.string().nullish(),
   "personName": zod.string().nullish(),
-  "paymentMethod": zod.enum(['cash', 'transfer', 'card', 'check']).nullish().default(createProjectTransactionBodyPaymentMethodDefault)
+  "paymentMethod": zod.enum(['cash', 'transfer', 'card', 'check']).nullish().default(createProjectTransactionBodyPaymentMethodDefault),
+  "deductionPercentage": zod.number().nullish(),
+  "deductionReason": zod.string().nullish()
 })
 
 export const createProjectTransactionResponsePaymentMethodDefault = `cash`;
@@ -187,6 +191,8 @@ export const CreateProjectTransactionResponse = zod.object({
   "shopName": zod.string().nullish().describe('Name of the shop or supplier'),
   "personName": zod.string().nullish().describe('Name of the person giving or receiving the money'),
   "paymentMethod": zod.enum(['cash', 'transfer', 'card', 'check']).nullish().default(createProjectTransactionResponsePaymentMethodDefault),
+  "deductionPercentage": zod.number().nullish().describe('Percentage of deduction (e.g. 10.00)'),
+  "deductionReason": zod.string().nullish().describe('Reason for deduction (e.g. نسبة التوريد)'),
   "createdAt": zod.coerce.date()
 })
 
@@ -211,7 +217,9 @@ export const CreateProjectTransactionsBulkBodyItem = zod.object({
   "receiptPath": zod.string().nullish().describe('Object storage path to the uploaded receipt\/invoice PDF or image, if any.'),
   "shopName": zod.string().nullish(),
   "personName": zod.string().nullish(),
-  "paymentMethod": zod.enum(['cash', 'transfer', 'card', 'check']).nullish().default(createProjectTransactionsBulkBodyPaymentMethodDefault)
+  "paymentMethod": zod.enum(['cash', 'transfer', 'card', 'check']).nullish().default(createProjectTransactionsBulkBodyPaymentMethodDefault),
+  "deductionPercentage": zod.number().nullish(),
+  "deductionReason": zod.string().nullish()
 })
 export const CreateProjectTransactionsBulkBody = zod.array(CreateProjectTransactionsBulkBodyItem)
 
@@ -228,6 +236,8 @@ export const CreateProjectTransactionsBulkResponseItem = zod.object({
   "shopName": zod.string().nullish().describe('Name of the shop or supplier'),
   "personName": zod.string().nullish().describe('Name of the person giving or receiving the money'),
   "paymentMethod": zod.enum(['cash', 'transfer', 'card', 'check']).nullish().default(createProjectTransactionsBulkResponsePaymentMethodDefault),
+  "deductionPercentage": zod.number().nullish().describe('Percentage of deduction (e.g. 10.00)'),
+  "deductionReason": zod.string().nullish().describe('Reason for deduction (e.g. نسبة التوريد)'),
   "createdAt": zod.coerce.date()
 })
 export const CreateProjectTransactionsBulkResponse = zod.array(CreateProjectTransactionsBulkResponseItem)
@@ -304,7 +314,9 @@ export const UpdateTransactionBody = zod.object({
   "receiptPath": zod.string().nullish().describe('Object storage path to the uploaded receipt\/invoice PDF or image, if any.'),
   "shopName": zod.string().nullish(),
   "personName": zod.string().nullish(),
-  "paymentMethod": zod.enum(['cash', 'transfer', 'card', 'check']).nullish()
+  "paymentMethod": zod.enum(['cash', 'transfer', 'card', 'check']).nullish(),
+  "deductionPercentage": zod.number().nullish(),
+  "deductionReason": zod.string().nullish()
 })
 
 export const updateTransactionResponsePaymentMethodDefault = `cash`;
@@ -320,6 +332,8 @@ export const UpdateTransactionResponse = zod.object({
   "shopName": zod.string().nullish().describe('Name of the shop or supplier'),
   "personName": zod.string().nullish().describe('Name of the person giving or receiving the money'),
   "paymentMethod": zod.enum(['cash', 'transfer', 'card', 'check']).nullish().default(updateTransactionResponsePaymentMethodDefault),
+  "deductionPercentage": zod.number().nullish().describe('Percentage of deduction (e.g. 10.00)'),
+  "deductionReason": zod.string().nullish().describe('Reason for deduction (e.g. نسبة التوريد)'),
   "createdAt": zod.coerce.date()
 })
 

@@ -22,5 +22,9 @@ export interface Transaction {
   /** Name of the person giving or receiving the money */
   personName?: string | null;
   paymentMethod?: TransactionPaymentMethod;
+  /** Percentage of deduction (e.g. 10.00) */
+  deductionPercentage?: number | null;
+  /** Reason for deduction (e.g. نسبة التوريد) */
+  deductionReason?: string | null;
   createdAt: Date;
 }

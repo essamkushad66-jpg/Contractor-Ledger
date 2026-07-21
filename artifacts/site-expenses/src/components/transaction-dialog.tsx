@@ -21,6 +21,8 @@ const transactionSchema = z.object({
   shopName: z.string().optional(),
   personName: z.string().optional(),
   paymentMethod: z.enum(["cash", "transfer", "card", "check"]).optional().default("cash"),
+  deductionPercentage: z.coerce.number().min(0, "لا يمكن أن تكون النسبة سالبة").max(100, "لا يمكن أن تتجاوز 100").optional().or(z.literal("")),
+  deductionReason: z.string().optional(),
 });
 
 type TransactionFormData = z.infer<typeof transactionSchema>;
@@ -51,6 +53,8 @@ export function TransactionDialog({
       shopName: "",
       personName: "",
       paymentMethod: "cash",
+      deductionPercentage: "",
+      deductionReason: "",
     }
   });
 
@@ -70,6 +74,8 @@ export function TransactionDialog({
         shopName: "",
         personName: "",
         paymentMethod: "cash",
+        deductionPercentage: "",
+        deductionReason: "",
       });
     }
   }, [open, defaultValues, type, form]);
@@ -115,10 +121,15 @@ export function TransactionDialog({
       setIsUploading(false);
     }
 
+    const submitData = { ...values };
+    if (submitData.deductionPercentage === "" || submitData.deductionPercentage === 0) {
+      submitData.deductionPercentage = undefined;
+    }
+
     if (isEdit && transactionId) {
-      updateMutation.mutate({ id: transactionId, data: values }, { onSuccess });
+      updateMutation.mutate({ id: transactionId, data: submitData as any }, { onSuccess });
     } else {
-      createMutation.mutate({ id: projectId, data: values }, { onSuccess });
+      createMutation.mutate({ id: projectId, data: submitData as any }, { onSuccess });
     }
   };
 
@@ -183,6 +194,25 @@ export function TransactionDialog({
                 <SelectItem value="check">صك (Check)</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 bg-muted/30 p-3 rounded-lg border border-border">
+            <div className="space-y-2">
+              <Label>نسبة الخصم / التوريد % (اختياري)</Label>
+              <Input 
+                type="number" 
+                step="any" 
+                {...form.register("deductionPercentage")} 
+                placeholder="مثال: 10" 
+                dir="ltr" 
+                className="text-right" 
+              />
+              {form.formState.errors.deductionPercentage && <p className="text-sm text-destructive">{form.formState.errors.deductionPercentage.message}</p>}
+            </div>
+            <div className="space-y-2">
+              <Label>سبب الخصم (اختياري)</Label>
+              <Input {...form.register("deductionReason")} placeholder="مثال: عمولة / نسبة توريد" />
+            </div>
           </div>
 
           <div className="space-y-2">

@@ -64,8 +64,16 @@ export const PrintableReport = forwardRef<HTMLDivElement, PrintableReportProps>(
                     <span className="text-red-700 font-bold">مصروف (سحب)</span>
                   )}
                 </td>
-                <td className="border border-black p-2 font-black" dir="ltr">
-                  {formatCurrency(tx.amount)}
+                <td className="border border-black p-2 font-black text-right" dir="ltr">
+                  <div className="text-left">{formatCurrency(tx.amount)}</div>
+                  {tx.deductionPercentage ? (
+                    <div className="text-[10px] text-gray-700 font-normal mt-1 border-t border-gray-300 pt-1 text-right">
+                      <div className="text-left">الصافي: {formatCurrency(tx.amount - (tx.amount * tx.deductionPercentage / 100))}</div>
+                      <div className="text-red-700 text-left mt-0.5">
+                        {tx.deductionReason || 'خصم'} ({tx.deductionPercentage}%): {formatCurrency(tx.amount * tx.deductionPercentage / 100)}
+                      </div>
+                    </div>
+                  ) : null}
                 </td>
                 <td className="border border-black p-2">
                   {tx.paymentMethod === 'cash' ? 'نقدي' : tx.paymentMethod === 'transfer' ? 'تحويل بنكي' : tx.paymentMethod === 'card' ? 'بطاقة' : tx.paymentMethod === 'check' ? 'صك' : 'نقدي'}

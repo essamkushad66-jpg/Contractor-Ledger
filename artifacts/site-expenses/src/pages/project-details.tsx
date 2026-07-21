@@ -207,17 +207,18 @@ export default function ProjectDetails() {
                   </div>
                 </div>
                 
-                <div className="flex items-center gap-4">
-                  <span className={`font-black text-lg ${tx.type === 'deposit' ? 'text-success' : 'text-destructive'}`} dir="ltr">
-                    {tx.type === 'deposit' ? '+' : '-'}{formatCurrency(tx.amount)}
-                  </span>
-                  
-                  <div className="flex gap-1 print:hidden">
-                    {tx.receiptPath && (
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-primary hover:bg-primary/10 hover:text-primary" onClick={() => viewReceipt(tx.receiptPath!)} title="عرض الإيصال">
-                        <ImageIcon className="h-4 w-4" />
-                      </Button>
-                    )}
+                <div className="flex flex-col items-end gap-1">
+                  <div className="flex items-center gap-4">
+                    <span className={`font-black text-lg ${tx.type === 'deposit' ? 'text-success' : 'text-destructive'}`} dir="ltr">
+                      {tx.type === 'deposit' ? '+' : '-'}{formatCurrency(tx.amount)}
+                    </span>
+                    
+                    <div className="flex gap-1 print:hidden">
+                      {tx.receiptPath && (
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-primary hover:bg-primary/10 hover:text-primary" onClick={() => viewReceipt(tx.receiptPath!)} title="عرض الإيصال">
+                          <ImageIcon className="h-4 w-4" />
+                        </Button>
+                      )}
                     {project.currentUserRole !== 'viewer' && (
                       <>
                         <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => openTransactionDialog(tx.type, tx.id, {
@@ -227,7 +228,9 @@ export default function ProjectDetails() {
                           date: tx.date.split('T')[0],
                           shopName: tx.shopName || "",
                           personName: tx.personName || "",
-                          paymentMethod: tx.paymentMethod || "cash"
+                          paymentMethod: tx.paymentMethod || "cash",
+                          deductionPercentage: tx.deductionPercentage || "",
+                          deductionReason: tx.deductionReason || "",
                         })}>
                           <Edit className="h-3.5 w-3.5" />
                         </Button>
@@ -238,8 +241,17 @@ export default function ProjectDetails() {
                     )}
                   </div>
                 </div>
+                {tx.deductionPercentage ? (
+                  <div className="text-xs flex flex-col items-end mt-2 px-3 py-1.5 bg-muted/30 rounded border border-border/50 w-full sm:w-auto">
+                    <span className="text-muted-foreground">الصافي: {formatCurrency(tx.amount - (tx.amount * tx.deductionPercentage / 100))}</span>
+                    <span className="text-destructive font-medium mt-0.5">
+                      {tx.deductionReason || 'خصم'} ({tx.deductionPercentage}%): {formatCurrency(tx.amount * tx.deductionPercentage / 100)}
+                    </span>
+                  </div>
+                ) : null}
               </div>
-            ))}
+            </div>
+          ))}
           </div>
         )}
       </div>

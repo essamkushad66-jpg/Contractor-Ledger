@@ -53,7 +53,12 @@ router.get("/projects/:id/transactions", async (c) => {
 
   return c.json(
     ListProjectTransactionsResponse.parse(
-      transactions.map((t) => ({ ...t, amount: Number(t.amount) })),
+      transactions.map((t) => ({ 
+        ...t, 
+        amount: Number(t.amount),
+        deductionPercentage: t.deductionPercentage !== null ? Number(t.deductionPercentage) : undefined,
+        deductionReason: t.deductionReason || undefined,
+      })),
     ),
   );
 });
@@ -78,6 +83,7 @@ router.post("/projects/:id/transactions", async (c) => {
       ...parsed.data,
       date: dateStr,
       amount: String(parsed.data.amount),
+      deductionPercentage: parsed.data.deductionPercentage !== undefined ? String(parsed.data.deductionPercentage) : null,
       projectId: params.data.id,
     })
     .returning();
@@ -88,6 +94,8 @@ router.post("/projects/:id/transactions", async (c) => {
     CreateProjectTransactionResponse.parse({
       ...transaction,
       amount: Number(transaction.amount),
+      deductionPercentage: transaction.deductionPercentage !== null ? Number(transaction.deductionPercentage) : undefined,
+      deductionReason: transaction.deductionReason || undefined,
     }),
     201
   );
@@ -112,6 +120,7 @@ router.post("/projects/:id/transactions/bulk", async (c) => {
     ...tx,
     date: tx.date.toISOString().slice(0, 10),
     amount: String(tx.amount),
+    deductionPercentage: tx.deductionPercentage !== undefined ? String(tx.deductionPercentage) : null,
     projectId: params.data.id,
   }));
 
@@ -124,6 +133,8 @@ router.post("/projects/:id/transactions/bulk", async (c) => {
     inserted.map(t => CreateProjectTransactionResponse.parse({
       ...t,
       amount: Number(t.amount),
+      deductionPercentage: t.deductionPercentage !== null ? Number(t.deductionPercentage) : undefined,
+      deductionReason: t.deductionReason || undefined,
     })),
     201
   );
@@ -154,13 +165,14 @@ router.patch("/transactions/:id", async (c) => {
   if (!owned || !role) return c.json({ error: "Transaction not found" }, 404);
   if (role === "viewer") return c.json({ error: "Forbidden" }, 403);
 
-  const { date, amount, ...rest } = parsed.data;
+  const { date, amount, deductionPercentage, ...rest } = parsed.data;
   const [transaction] = await db
     .update(transactionsTable)
     .set({
       ...rest,
       ...(date ? { date: date.toISOString().slice(0, 10) } : {}),
       ...(amount !== undefined ? { amount: String(amount) } : {}),
+      ...(deductionPercentage !== undefined ? { deductionPercentage: deductionPercentage === null ? null : String(deductionPercentage) } : {}),
     })
     .where(eq(transactionsTable.id, params.data.id))
     .returning();
@@ -171,6 +183,8 @@ router.patch("/transactions/:id", async (c) => {
     UpdateTransactionResponse.parse({
       ...transaction,
       amount: Number(transaction.amount),
+      deductionPercentage: transaction.deductionPercentage !== null ? Number(transaction.deductionPercentage) : undefined,
+      deductionReason: transaction.deductionReason || undefined,
     }),
   );
 });
