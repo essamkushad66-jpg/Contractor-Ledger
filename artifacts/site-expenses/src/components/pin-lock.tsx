@@ -29,7 +29,7 @@ export function AppLockProvider({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("storage", checkLock);
   }, []);
 
-  const timeoutRef = useRef<NodeJS.Timeout>();
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const resetTimer = () => {

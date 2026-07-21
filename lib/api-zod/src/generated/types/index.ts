@@ -28,6 +28,7 @@ export * from './transactionInputType';
 export * from './transactionPaymentMethod';
 export * from './transactionType';
 export * from './transactionUpdate';
+export * from './transactionUpdateCategory';
 export * from './transactionUpdateDeductionType';
 export * from './transactionUpdatePaymentMethod';
 export * from './transactionUpdateType';

@@ -345,6 +345,7 @@ export const UpdateTransactionBody = zod.object({
   "shopName": zod.string().nullish(),
   "personName": zod.string().nullish(),
   "paymentMethod": zod.enum(['cash', 'transfer', 'card', 'check']).nullish(),
+  "category": zod.enum(['materials', 'labor', 'transport', 'permits', 'equipment', 'others']).optional(),
   "deductionType": zod.enum(['percentage', 'amount']).nullish(),
   "deductionValue": zod.number().nullish(),
   "deductionReason": zod.string().nullish(),

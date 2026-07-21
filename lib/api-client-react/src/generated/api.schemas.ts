@@ -227,6 +227,18 @@ export const TransactionUpdatePaymentMethod = {
   check: 'check',
 } as const;
 
+export type TransactionUpdateCategory = typeof TransactionUpdateCategory[keyof typeof TransactionUpdateCategory];
+
+
+export const TransactionUpdateCategory = {
+  materials: 'materials',
+  labor: 'labor',
+  transport: 'transport',
+  permits: 'permits',
+  equipment: 'equipment',
+  others: 'others',
+} as const;
+
 export type TransactionUpdateDeductionType = typeof TransactionUpdateDeductionType[keyof typeof TransactionUpdateDeductionType] | null;
 
 
@@ -247,6 +259,7 @@ export interface TransactionUpdate {
   shopName?: string | null;
   personName?: string | null;
   paymentMethod?: TransactionUpdatePaymentMethod;
+  category?: TransactionUpdateCategory;
   deductionType?: TransactionUpdateDeductionType;
   deductionValue?: number | null;
   deductionReason?: string | null;

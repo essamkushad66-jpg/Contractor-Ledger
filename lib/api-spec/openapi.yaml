@@ -713,6 +713,9 @@ components:
           type: string
           enum: [cash, transfer, card, check]
           nullable: true
+        category:
+          type: string
+          enum: [materials, labor, transport, permits, equipment, others]
         deductionType:
           type: string
           enum: [percentage, amount]
