@@ -177,7 +177,7 @@ export function TransactionDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>
             {isEdit ? "تعديل الحركة" : (type === "deposit" ? "تسجيل دفعة مستلمة" : "تسجيل مصروف")}
