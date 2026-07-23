@@ -95,11 +95,12 @@ export default function ProjectDetails() {
   const { totalTransport, totalLabor, totalDeduction } = useMemo(() => {
     let t = 0, l = 0, d = 0;
     transactions?.forEach(tx => {
-      const transport = tx.transportCost || 0;
-      const labor = tx.laborCost || 0;
-      const dv = tx.deductionValue || 0;
+      const transport = Number(tx.transportCost) || 0;
+      const labor = Number(tx.laborCost) || 0;
+      const dv = Number(tx.deductionValue) || 0;
+      const amount = Number(tx.amount) || 0;
       const isPerc = tx.deductionType !== 'amount';
-      const baseAmount = isPerc ? ((tx.amount - transport - labor) / (1 + (dv / 100))) : (tx.amount - transport - labor - dv);
+      const baseAmount = isPerc ? ((amount - transport - labor) / (1 + (dv / 100))) : (amount - transport - labor - dv);
       const dedAmount = isPerc ? (baseAmount * (dv / 100)) : dv;
       
       t += transport;
@@ -353,20 +354,20 @@ export default function ProjectDetails() {
         ) : (
           <div className="space-y-3">
             {filteredTransactions?.map((tx) => (
-              <div key={tx.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-card border rounded-lg shadow-sm hover:shadow transition-shadow print:shadow-none print:break-inside-avoid print:border-foreground/30 print:bg-transparent">
-                <div className="flex items-start sm:items-center gap-4">
+              <div key={tx.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 p-4 bg-card border rounded-lg shadow-sm hover:shadow transition-shadow print:shadow-none print:break-inside-avoid print:border-foreground/30 print:bg-transparent overflow-hidden">
+                <div className="flex items-start sm:items-center gap-3 sm:gap-4 overflow-hidden w-full sm:w-auto">
                   <div className={`h-10 w-10 rounded-full flex items-center justify-center shrink-0 mt-1 sm:mt-0 ${tx.type === 'deposit' ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'}`}>
                     {tx.type === 'deposit' ? <ArrowDownRight className="h-5 w-5" /> : <ArrowUpRight className="h-5 w-5" />}
                   </div>
-                  <div>
-                    <p className="font-bold">{tx.description}</p>
-                    <p className="text-xs text-muted-foreground flex items-center gap-2 mt-0.5">
-                      <span>{formatDate(tx.date)}</span>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-bold truncate">{tx.description}</p>
+                    <p className="text-xs text-muted-foreground flex flex-wrap items-center gap-1.5 mt-1">
+                      <span className="whitespace-nowrap">{formatDate(tx.date)}</span>
                       {tx.paymentMethod && (
-                        <span>• {tx.paymentMethod === 'cash' ? 'نقدي' : tx.paymentMethod === 'transfer' ? 'تحويل بنكي' : tx.paymentMethod === 'card' ? 'بطاقة' : 'صك'}</span>
+                        <span className="whitespace-nowrap">• {tx.paymentMethod === 'cash' ? 'نقدي' : tx.paymentMethod === 'transfer' ? 'تحويل بنكي' : tx.paymentMethod === 'card' ? 'بطاقة' : 'صك'}</span>
                       )}
-                      {tx.shopName && <span className="opacity-75">• 🏪 {tx.shopName}</span>}
-                      {tx.personName && <span className="opacity-75">• 👤 {tx.personName}</span>}
+                      {tx.shopName && <span className="opacity-75 truncate max-w-[100px] sm:max-w-none">• 🏪 {tx.shopName}</span>}
+                      {tx.personName && <span className="opacity-75 truncate max-w-[100px] sm:max-w-none">• 👤 {tx.personName}</span>}
                       {tx.type === 'expense' && (tx as any).category && (tx as any).category !== 'others' && (
                         <span className="opacity-100 mr-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-primary/10 text-primary">
                           {CATEGORY_LABELS[(tx as any).category] || (tx as any).category}
@@ -376,9 +377,9 @@ export default function ProjectDetails() {
                   </div>
                 </div>
                 
-                <div className="flex flex-col items-end gap-1 w-full sm:w-auto mt-2 sm:mt-0 border-t sm:border-t-0 pt-3 sm:pt-0 border-border/50">
-                  <div className="flex items-center justify-between sm:justify-end w-full gap-4">
-                    <span className={`font-black text-lg ${tx.type === 'deposit' ? 'text-success' : 'text-destructive'}`} dir="ltr">
+                <div className="flex flex-col items-end gap-1 w-full sm:w-auto mt-2 sm:mt-0 border-t sm:border-t-0 pt-3 sm:pt-0 border-border/50 shrink-0">
+                  <div className="flex items-center justify-between sm:justify-end w-full gap-2 sm:gap-4">
+                    <span className={`font-black text-base sm:text-lg whitespace-nowrap ${tx.type === 'deposit' ? 'text-success' : 'text-destructive'}`} dir="ltr">
                       {tx.type === 'deposit' ? '+' : '-'}{formatCurrency(tx.amount)}
                     </span>
                     
