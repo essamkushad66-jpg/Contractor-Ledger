@@ -267,7 +267,7 @@ function ClerkProviderWithRoutes() {
         <ThemeProvider defaultTheme="light" storageKey="contractor-ledger-theme">
           <ClerkQueryClientCacheInvalidator />
           <AppLockProvider>
-            <div className="min-h-[100dvh] bg-background text-foreground font-sans selection:bg-primary/20 selection:text-primary">
+            <div className="min-h-[100dvh] bg-background text-foreground font-sans selection:bg-primary/20 selection:text-primary overflow-x-hidden flex flex-col">
               <Show when="signed-in">
                 {!location.includes('/print') && (
                   <header className="bg-primary text-primary-foreground shadow-md sticky top-0 z-30 print:hidden">

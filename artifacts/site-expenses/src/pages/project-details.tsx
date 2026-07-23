@@ -169,8 +169,8 @@ export default function ProjectDetails() {
     <div className="space-y-6 pb-20">
 
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-start sm:items-center gap-3">
           <Link href="/" className="p-2 -ml-2 rounded-full hover:bg-muted text-muted-foreground transition-colors print:hidden">
             <ArrowLeft className="h-5 w-5" />
           </Link>
@@ -182,7 +182,7 @@ export default function ProjectDetails() {
             </div>
           </div>
         </div>
-        <div className="flex gap-2 print:hidden">
+        <div className="flex flex-wrap gap-2 print:hidden self-end sm:self-auto w-full sm:w-auto justify-end">
           <Button variant="outline" size="icon" onClick={() => setMembersDialogOpen(true)} title="مشاركة المشروع">
             <Users className="h-4 w-4" />
           </Button>
