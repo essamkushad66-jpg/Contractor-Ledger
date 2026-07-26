@@ -15,7 +15,8 @@ type Env = {
     R2_BUCKET: import("@cloudflare/workers-types").R2Bucket,
     R2_ACCOUNT_ID: string,
     R2_ACCESS_KEY_ID: string,
-    R2_SECRET_ACCESS_KEY: string
+    R2_SECRET_ACCESS_KEY: string,
+    R2_BUCKET_NAME?: string
   }
 }
 
@@ -46,7 +47,7 @@ router.post("/storage/uploads/request-url", requireAuth, async (c) => {
     const uploadURL = await getSignedUrl(
       S3,
       new PutObjectCommand({
-        Bucket: "contractor-ledger", // Arbitrary name for Cloudflare R2
+        Bucket: c.env.R2_BUCKET_NAME || "contractor-ledger",
         Key: `uploads/${objectId}`,
         ContentType: contentType,
       }),

@@ -142,11 +142,14 @@ export function TransactionDialog({
           });
           
           if (res.uploadURL) {
-            await fetch(res.uploadURL, {
+            const uploadRes = await fetch(res.uploadURL, {
               method: "PUT",
               body: file,
               headers: { "Content-Type": file.type }
             });
+            if (!uploadRes.ok) {
+              throw new Error(`Upload failed for ${file.name}`);
+            }
             paths.push(res.objectPath);
           }
         }
