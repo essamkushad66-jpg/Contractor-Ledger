@@ -415,10 +415,11 @@ export default function ProjectDetails() {
                           const dv = tx.deductionValue || 0;
                           const isPerc = tx.deductionType !== 'amount';
                           const baseAmount = isPerc ? ((tx.amount - t - l) / (1 + (dv / 100))) : (tx.amount - t - l - dv);
+                          const roundedBaseAmount = Math.round(baseAmount * 100) / 100;
                           
                           openTransactionDialog(tx.type, tx.id, {
                             type: tx.type,
-                            amount: baseAmount,
+                            amount: roundedBaseAmount,
                             description: tx.description,
                             date: tx.date.split('T')[0],
                             shopName: tx.shopName || "",

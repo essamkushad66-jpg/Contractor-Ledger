@@ -4,6 +4,7 @@ import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'vite';
 import runtimeErrorOverlay from '@replit/vite-plugin-runtime-error-modal';
 import { VitePWA } from 'vite-plugin-pwa';
+import fs from 'fs';
 
 const rawPort = process.env.PORT || '5000';
 
@@ -18,6 +19,36 @@ const basePath = process.env.BASE_PATH || '/';
 export default defineConfig({
   base: basePath,
   plugins: [
+    {
+      name: 'local-upload',
+      configureServer(server) {
+        server.middlewares.use('/api/upload-local', (req, res) => {
+          let body = '';
+          req.on('data', chunk => {
+            body += chunk.toString();
+          });
+          req.on('end', () => {
+            try {
+              const { filename, base64 } = JSON.parse(body);
+              const uploadsDir = path.resolve(import.meta.dirname, 'public/uploads');
+              if (!fs.existsSync(uploadsDir)) {
+                fs.mkdirSync(uploadsDir, { recursive: true });
+              }
+              const uniqueName = Date.now() + '-' + filename;
+              const filePath = path.join(uploadsDir, uniqueName);
+              const buffer = Buffer.from(base64.split(',')[1], 'base64');
+              fs.writeFileSync(filePath, buffer);
+              
+              res.setHeader('Content-Type', 'application/json');
+              res.end(JSON.stringify({ objectPath: '/uploads/' + uniqueName }));
+            } catch (e) {
+              res.statusCode = 500;
+              res.end('Upload failed');
+            }
+          });
+        });
+      }
+    },
     react(),
     tailwindcss({ optimize: false }),
     runtimeErrorOverlay(),

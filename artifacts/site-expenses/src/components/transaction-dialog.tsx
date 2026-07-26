@@ -130,21 +130,20 @@ export function TransactionDialog({
         const paths: string[] = [];
         
         for (const file of receiptFiles) {
-          const { uploadURL, objectPath } = await requestUploadUrl({
-            name: file.name,
-            size: file.size,
-            contentType: file.type
+          const reader = new FileReader();
+          const base64 = await new Promise<string>((resolve) => {
+            reader.onload = () => resolve(reader.result as string);
+            reader.readAsDataURL(file);
           });
           
-          const uploadRes = await fetch(uploadURL, {
-            method: 'PUT',
-            body: file,
-            headers: {
-              'Content-Type': file.type,
-            }
+          const uploadRes = await fetch('/api/upload-local', {
+            method: 'POST',
+            body: JSON.stringify({ filename: file.name, base64 }),
+            headers: { 'Content-Type': 'application/json' }
           });
           
           if (!uploadRes.ok) throw new Error("Upload failed for " + file.name);
+          const { objectPath } = await uploadRes.json();
           paths.push(objectPath);
         }
         
