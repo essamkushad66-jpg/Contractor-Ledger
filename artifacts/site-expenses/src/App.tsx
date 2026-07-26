@@ -288,12 +288,12 @@ function ClerkProviderWithRoutes() {
               <Show when="signed-in">
                 {!location.includes('/print') && (
                   <header className="bg-primary text-primary-foreground shadow-md sticky top-0 z-30 print:hidden">
-                    <div className="max-w-3xl mx-auto px-4 md:px-6 py-4 flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <Link href="/" className="text-xl font-bold tracking-tight hover:opacity-90">المشاريع</Link>
-                        <Link href="/vendors" className="text-xs sm:text-sm font-medium opacity-80 hover:opacity-100">الموردين</Link>
+                    <div className="max-w-3xl mx-auto px-3 md:px-6 py-3 flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-3 sm:gap-4 shrink-0">
+                        <Link href="/" className="text-lg sm:text-xl font-bold tracking-tight hover:opacity-90 truncate max-w-[100px] sm:max-w-none">المشاريع</Link>
+                        <Link href="/vendors" className="text-xs sm:text-sm font-medium opacity-80 hover:opacity-100 truncate max-w-[80px] sm:max-w-none">الموردين</Link>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1 sm:gap-2 shrink-0">
                         <button
                           onClick={handleManualLock}
                           className="flex items-center justify-center w-8 h-8 rounded-md hover:bg-primary-foreground/10 transition-colors"

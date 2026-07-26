@@ -133,15 +133,15 @@ export default function Dashboard() {
               <Link key={project.id} href={`/projects/${project.id}`} className="block transition-transform hover:-translate-y-1 active:scale-95">
                 <Card className="h-full hover:border-primary/50 transition-colors cursor-pointer">
                   <CardHeader className="pb-2">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <CardTitle className="text-lg mb-1">{project.name}</CardTitle>
-                        <CardDescription className="flex items-center gap-1">
-                          <Building2 className="h-3 w-3" />
-                          {project.clientName}
+                    <div className="flex justify-between items-start gap-2">
+                      <div className="flex-1 min-w-0">
+                        <CardTitle className="text-lg mb-1 truncate" title={project.name}>{project.name}</CardTitle>
+                        <CardDescription className="flex items-center gap-1 truncate" title={project.clientName}>
+                          <Building2 className="h-3 w-3 shrink-0" />
+                          <span className="truncate">{project.clientName}</span>
                         </CardDescription>
                       </div>
-                      <div className={`px-3 py-1 rounded-full text-sm font-bold ${project.balance >= 0 ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'}`}>
+                      <div className={`px-2 py-1 rounded-full text-xs sm:text-sm font-bold shrink-0 whitespace-nowrap ${project.balance >= 0 ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'}`}>
                         {formatCurrency(project.balance)}
                       </div>
                     </div>
@@ -153,9 +153,9 @@ export default function Dashboard() {
                         {project.location}
                       </div>
                     )}
-                    <div className="flex justify-between text-xs text-muted-foreground mt-4 pt-4 border-t">
-                      <span>مصروف: <span className="text-destructive font-medium">{formatCurrency(project.totalSpent)}</span></span>
-                      <span>مستلم: <span className="text-success font-medium">{formatCurrency(project.totalReceived)}</span></span>
+                    <div className="flex justify-between text-xs sm:text-sm text-muted-foreground mt-4 pt-4 border-t gap-2">
+                      <span className="truncate">مصروف: <span className="text-destructive font-bold">{formatCurrency(project.totalSpent)}</span></span>
+                      <span className="truncate">مستلم: <span className="text-success font-bold">{formatCurrency(project.totalReceived)}</span></span>
                     </div>
                   </CardContent>
                 </Card>
