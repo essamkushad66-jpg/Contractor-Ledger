@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import { Toaster } from 'sonner';
-import { Route, Switch, useLocation, Router as WouterRouter, Redirect } from 'wouter';
+import { Route, Switch, useLocation, Router as WouterRouter, Redirect, Link } from 'wouter';
 import { ClerkProvider, Show, useClerk, useAuth } from '@clerk/react';
 import { publishableKeyFromHost } from '@clerk/react/internal';
 import { shadcn } from '@clerk/themes';

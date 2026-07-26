@@ -108,9 +108,15 @@ router.post("/projects", async (c) => {
     return c.json({ error: parsed.error.message }, 400);
   }
 
+  const { budget, ...restData } = parsed.data;
+
   const [project] = await db
     .insert(projectsTable)
-    .values({ ...parsed.data, userId })
+    .values({ 
+      ...restData, 
+      budget: budget !== undefined && budget !== null ? String(budget) : null,
+      userId 
+    })
     .returning();
 
   if (!project) {
@@ -146,9 +152,14 @@ router.patch("/projects/:id", async (c) => {
   const parsed = UpdateProjectBody.safeParse(body);
   if (!parsed.success) return c.json({ error: parsed.error.message }, 400);
 
+  const { budget, ...restData } = parsed.data;
+
   const [updatedProject] = await db
     .update(projectsTable)
-    .set(parsed.data)
+    .set({
+      ...restData,
+      ...(budget !== undefined && { budget: budget !== null ? String(budget) : null })
+    })
     .where(eq(projectsTable.id, params.data.id))
     .returning();
 

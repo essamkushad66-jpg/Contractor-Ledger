@@ -32,7 +32,7 @@ export default function ProjectDetails() {
   const deleteProjectMutation = useDeleteProject();
   const deleteTransactionMutation = useDeleteTransaction();
   const { data: vendorsRes } = useListVendors();
-  const vendors = vendorsRes?.data || [];
+  const vendors = vendorsRes || [];
 
   // Dialog states
   const [editProjectOpen, setEditProjectOpen] = useState(false);
@@ -395,7 +395,7 @@ export default function ProjectDetails() {
                         <span className="whitespace-nowrap">• {tx.paymentMethod === 'cash' ? 'نقدي' : tx.paymentMethod === 'transfer' ? 'تحويل بنكي' : tx.paymentMethod === 'card' ? 'بطاقة' : 'صك'}</span>
                       )}
                       {tx.shopName && <span className="opacity-75 truncate max-w-[100px] sm:max-w-none">• 🏪 {tx.shopName}</span>}
-                      {(tx as any).vendorId && <span className="opacity-75 truncate max-w-[100px] sm:max-w-none text-primary font-semibold">• 👤 {vendors.find(v => v.id === (tx as any).vendorId)?.name || 'مورد'}</span>}
+                      {(tx as any).vendorId && <span className="opacity-75 truncate max-w-[100px] sm:max-w-none text-primary font-semibold">• 👤 {vendors.find((v: any) => v.id === (tx as any).vendorId)?.name || 'مورد'}</span>}
                       {tx.personName && !((tx as any).vendorId) && <span className="opacity-75 truncate max-w-[100px] sm:max-w-none">• 👤 {tx.personName}</span>}
                       {tx.type === 'expense' && (tx as any).category && (tx as any).category !== 'others' && (
                         <span className="opacity-100 mr-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-primary/10 text-primary">

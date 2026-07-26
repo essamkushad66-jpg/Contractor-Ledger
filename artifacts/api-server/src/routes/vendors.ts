@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { eq, desc } from "drizzle-orm";
 import { db, vendorsTable } from "@workspace/db";
-import { VendorInput, VendorUpdate, Vendor as VendorType } from "@workspace/api-zod";
+import { CreateVendorBody, UpdateVendorBody, Vendor as VendorType } from "@workspace/api-zod";
 import { requireAuth } from "../middlewares/requireAuth";
 
 type Env = {
@@ -29,7 +29,7 @@ router.get("/vendors", async (c) => {
 router.post("/vendors", async (c) => {
   const userId = c.get("userId");
   const body = await c.req.json().catch(() => ({}));
-  const parsed = VendorInput.safeParse(body);
+  const parsed = CreateVendorBody.safeParse(body);
   
   if (!parsed.success) {
     return c.json({ error: parsed.error.message }, 400);
@@ -73,7 +73,7 @@ router.put("/vendors/:id", async (c) => {
   if (isNaN(id)) return c.json({ error: "Invalid id" }, 400);
 
   const body = await c.req.json().catch(() => ({}));
-  const parsed = VendorUpdate.safeParse(body);
+  const parsed = UpdateVendorBody.safeParse(body);
   
   if (!parsed.success) {
     return c.json({ error: parsed.error.message }, 400);

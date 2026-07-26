@@ -607,6 +607,9 @@ components:
           type: ["string", "null"]
         notes:
           type: ["string", "null"]
+        budget:
+          type: ["number", "null"]
+          description: Total budget allocated for the project
         totalReceived:
           type: number
           description: Sum of all deposits received for this project
@@ -640,6 +643,9 @@ components:
           type: string
         notes:
           type: string
+        budget:
+          type: number
+          nullable: true
 
     ProjectUpdate:
       type: object
@@ -654,6 +660,9 @@ components:
           type: string
         notes:
           type: string
+        budget:
+          type: number
+          nullable: true
 
     Transaction:
       type: object

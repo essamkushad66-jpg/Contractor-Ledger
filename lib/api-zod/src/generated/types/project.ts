@@ -15,6 +15,11 @@ export interface Project {
   location: string | null;
   /** @nullable */
   notes: string | null;
+  /**
+     * Total budget allocated for the project
+     * @nullable
+     */
+  budget?: number | null;
   /** Sum of all deposits received for this project */
   totalReceived: number;
   /** Sum of all expenses recorded for this project */

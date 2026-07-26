@@ -13,4 +13,5 @@ export interface ProjectUpdate {
   clientName?: string;
   location?: string;
   notes?: string;
+  budget?: number | null;
 }

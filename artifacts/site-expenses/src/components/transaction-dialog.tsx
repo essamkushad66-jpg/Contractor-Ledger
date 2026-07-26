@@ -47,7 +47,7 @@ export function TransactionDialog({
   const createMutation = useCreateProjectTransaction();
   const updateMutation = useUpdateTransaction();
   const { data: vendorsRes } = useListVendors();
-  const vendors = vendorsRes?.data || [];
+  const vendors = vendorsRes || [];
 
   const isEdit = !!transactionId;
 
@@ -135,13 +135,20 @@ export function TransactionDialog({
         const paths: string[] = [];
         
         for (const file of receiptFiles) {
-          const reader = new FileReader();
-          const base64 = await new Promise<string>((resolve) => {
-            reader.onload = () => resolve(reader.result as string);
-            reader.readAsDataURL(file);
+          const res = await requestUploadUrl({ 
+            name: file.name, 
+            size: file.size,
+            contentType: file.type 
           });
           
-          paths.push(base64);
+          if (res.uploadURL) {
+            await fetch(res.uploadURL, {
+              method: "PUT",
+              body: file,
+              headers: { "Content-Type": file.type }
+            });
+            paths.push(res.objectPath);
+          }
         }
         
         values.receiptPaths = paths;
@@ -233,7 +240,7 @@ export function TransactionDialog({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="">-- لا يوجد --</SelectItem>
-                  {vendors.map(v => (
+                  {vendors.map((v: any) => (
                     <SelectItem key={v.id} value={v.id.toString()}>{v.name}</SelectItem>
                   ))}
                 </SelectContent>
@@ -381,7 +388,7 @@ export function TransactionDialog({
                 )}
                 
                 {/* Existing array receipts */}
-                {form.watch('receiptPaths')?.map((path, idx) => (
+                {form.watch('receiptPaths')?.map((_, idx) => (
                   <div key={`existing-${idx}`} className="flex items-center justify-between p-2 border rounded bg-muted/50">
                     <span className="text-sm truncate max-w-[200px]">صورة مرفقة {idx + 1}</span>
                     <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => {

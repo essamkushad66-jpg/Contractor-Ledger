@@ -26,6 +26,7 @@ export const ListProjectsResponseItem = zod.object({
   "clientName": zod.string(),
   "location": zod.string().nullable(),
   "notes": zod.string().nullable(),
+  "budget": zod.number().nullish().describe('Total budget allocated for the project'),
   "totalReceived": zod.number().describe('Sum of all deposits received for this project'),
   "totalSpent": zod.number().describe('Sum of all expenses recorded for this project'),
   "balance": zod.number().describe('totalReceived minus totalSpent (money remaining in hand)'),
@@ -46,7 +47,8 @@ export const CreateProjectBody = zod.object({
   "name": zod.string().min(1),
   "clientName": zod.string().min(1),
   "location": zod.string().optional(),
-  "notes": zod.string().optional()
+  "notes": zod.string().optional(),
+  "budget": zod.number().nullish()
 })
 
 export const CreateProjectResponse = zod.object({
@@ -55,6 +57,7 @@ export const CreateProjectResponse = zod.object({
   "clientName": zod.string(),
   "location": zod.string().nullable(),
   "notes": zod.string().nullable(),
+  "budget": zod.number().nullish().describe('Total budget allocated for the project'),
   "totalReceived": zod.number().describe('Sum of all deposits received for this project'),
   "totalSpent": zod.number().describe('Sum of all expenses recorded for this project'),
   "balance": zod.number().describe('totalReceived minus totalSpent (money remaining in hand)'),
@@ -76,6 +79,7 @@ export const GetProjectResponse = zod.object({
   "clientName": zod.string(),
   "location": zod.string().nullable(),
   "notes": zod.string().nullable(),
+  "budget": zod.number().nullish().describe('Total budget allocated for the project'),
   "totalReceived": zod.number().describe('Sum of all deposits received for this project'),
   "totalSpent": zod.number().describe('Sum of all expenses recorded for this project'),
   "balance": zod.number().describe('totalReceived minus totalSpent (money remaining in hand)'),
@@ -99,7 +103,8 @@ export const UpdateProjectBody = zod.object({
   "name": zod.string().min(1).optional(),
   "clientName": zod.string().min(1).optional(),
   "location": zod.string().optional(),
-  "notes": zod.string().optional()
+  "notes": zod.string().optional(),
+  "budget": zod.number().nullish()
 })
 
 export const UpdateProjectResponse = zod.object({
@@ -108,6 +113,7 @@ export const UpdateProjectResponse = zod.object({
   "clientName": zod.string(),
   "location": zod.string().nullable(),
   "notes": zod.string().nullable(),
+  "budget": zod.number().nullish().describe('Total budget allocated for the project'),
   "totalReceived": zod.number().describe('Sum of all deposits received for this project'),
   "totalSpent": zod.number().describe('Sum of all expenses recorded for this project'),
   "balance": zod.number().describe('totalReceived minus totalSpent (money remaining in hand)'),

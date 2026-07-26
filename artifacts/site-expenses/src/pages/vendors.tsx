@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useAuth } from "@clerk/react";
+
 import { 
   getListVendorsQueryKey, 
   listVendors, 
@@ -9,14 +9,14 @@ import {
   deleteVendor,
   Vendor
 } from "@workspace/api-client-react";
-import { Plus, User, Phone, StickyNote, Trash2, Edit, Save, X } from "lucide-react";
+import { Plus, User, Phone, StickyNote, Trash2, Edit } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export default function Vendors() {
-  const { getToken } = useAuth();
+
   const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingVendor, setEditingVendor] = useState<Vendor | null>(null);
@@ -32,7 +32,7 @@ export default function Vendors() {
     queryKey: getListVendorsQueryKey(),
     queryFn: async () => {
       const res = await listVendors();
-      return res.data;
+      return res;
     }
   });
 
@@ -116,7 +116,7 @@ export default function Vendors() {
             لا يوجد أي موردين أو عمال حالياً
           </div>
         ) : (
-          vendors?.map(v => (
+          vendors?.map((v: Vendor) => (
             <div key={v.id} className="bg-card text-card-foreground p-4 rounded-xl border shadow-sm">
               <div className="flex justify-between items-start mb-3">
                 <div className="flex items-center gap-2 font-bold text-lg">

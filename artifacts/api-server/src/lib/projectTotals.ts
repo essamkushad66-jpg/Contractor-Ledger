@@ -1,12 +1,12 @@
 import { inArray, sql } from "drizzle-orm";
 import { db, transactionsTable, type Project } from "@workspace/db";
 
-export interface ProjectWithTotals extends Omit<Project, 'budget'> {
+export type ProjectWithTotals = Omit<Project, 'budget'> & {
   budget: number | null;
   totalReceived: number;
   totalSpent: number;
   balance: number;
-}
+};
 
 interface TotalsRow {
   projectId: number;
