@@ -146,9 +146,23 @@ export default function ProjectDetails() {
   const viewReceipt = async (path: string) => {
     try {
       const toastId = toast.loading("جاري تحميل الصورة...");
-      // Using customFetch ensures the Clerk authentication token is attached securely
-      const res = await customFetch(path) as unknown as Response;
-      const blob = await res.blob();
+      
+      let blob: Blob;
+      if (path.startsWith('data:')) {
+        const arr = path.split(',');
+        const mime = arr[0].match(/:(.*?);/)?.[1] || 'image/jpeg';
+        const bstr = atob(arr[1]);
+        let n = bstr.length;
+        const u8arr = new Uint8Array(n);
+        while(n--){
+            u8arr[n] = bstr.charCodeAt(n);
+        }
+        blob = new Blob([u8arr], {type:mime});
+      } else {
+        const res = await customFetch(path) as unknown as Response;
+        blob = await res.blob();
+      }
+      
       const url = URL.createObjectURL(blob);
       window.open(url, "_blank");
       toast.dismiss(toastId);
