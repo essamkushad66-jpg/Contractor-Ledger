@@ -140,6 +140,7 @@ export const listProjectTransactionsResponseDeductionTypeDefault = `percentage`;
 export const ListProjectTransactionsResponseItem = zod.object({
   "id": zod.number(),
   "projectId": zod.number(),
+  "vendorId": zod.number().nullish(),
   "type": zod.enum(['deposit', 'expense']),
   "amount": zod.number(),
   "description": zod.string(),
@@ -182,6 +183,7 @@ export const CreateProjectTransactionBody = zod.object({
   "receiptPath": zod.string().nullish().describe('Object storage path to the uploaded receipt\/invoice PDF or image, if any.'),
   "receiptPaths": zod.array(zod.string()).nullish().describe('List of object storage paths to uploaded receipts\/invoices.'),
   "shopName": zod.string().nullish(),
+  "vendorId": zod.number().nullish(),
   "personName": zod.string().nullish(),
   "paymentMethod": zod.enum(['cash', 'transfer', 'card', 'check']).nullish().default(createProjectTransactionBodyPaymentMethodDefault),
   "category": zod.enum(['materials', 'labor', 'transport', 'permits', 'equipment', 'others']).default(createProjectTransactionBodyCategoryDefault),
@@ -199,6 +201,7 @@ export const createProjectTransactionResponseDeductionTypeDefault = `percentage`
 export const CreateProjectTransactionResponse = zod.object({
   "id": zod.number(),
   "projectId": zod.number(),
+  "vendorId": zod.number().nullish(),
   "type": zod.enum(['deposit', 'expense']),
   "amount": zod.number(),
   "description": zod.string(),
@@ -240,6 +243,7 @@ export const CreateProjectTransactionsBulkBodyItem = zod.object({
   "receiptPath": zod.string().nullish().describe('Object storage path to the uploaded receipt\/invoice PDF or image, if any.'),
   "receiptPaths": zod.array(zod.string()).nullish().describe('List of object storage paths to uploaded receipts\/invoices.'),
   "shopName": zod.string().nullish(),
+  "vendorId": zod.number().nullish(),
   "personName": zod.string().nullish(),
   "paymentMethod": zod.enum(['cash', 'transfer', 'card', 'check']).nullish().default(createProjectTransactionsBulkBodyPaymentMethodDefault),
   "category": zod.enum(['materials', 'labor', 'transport', 'permits', 'equipment', 'others']).default(createProjectTransactionsBulkBodyCategoryDefault),
@@ -258,6 +262,7 @@ export const createProjectTransactionsBulkResponseDeductionTypeDefault = `percen
 export const CreateProjectTransactionsBulkResponseItem = zod.object({
   "id": zod.number(),
   "projectId": zod.number(),
+  "vendorId": zod.number().nullish(),
   "type": zod.enum(['deposit', 'expense']),
   "amount": zod.number(),
   "description": zod.string(),
@@ -349,6 +354,7 @@ export const UpdateTransactionBody = zod.object({
   "receiptPath": zod.string().nullish().describe('Object storage path to the uploaded receipt\/invoice PDF or image, if any.'),
   "receiptPaths": zod.array(zod.string()).nullish().describe('List of object storage paths to uploaded receipts\/invoices.'),
   "shopName": zod.string().nullish(),
+  "vendorId": zod.number().nullish(),
   "personName": zod.string().nullish(),
   "paymentMethod": zod.enum(['cash', 'transfer', 'card', 'check']).nullish(),
   "category": zod.enum(['materials', 'labor', 'transport', 'permits', 'equipment', 'others']).optional(),
@@ -366,6 +372,7 @@ export const updateTransactionResponseDeductionTypeDefault = `percentage`;
 export const UpdateTransactionResponse = zod.object({
   "id": zod.number(),
   "projectId": zod.number(),
+  "vendorId": zod.number().nullish(),
   "type": zod.enum(['deposit', 'expense']),
   "amount": zod.number(),
   "description": zod.string(),
@@ -404,6 +411,101 @@ export const GetDashboardSummaryResponse = zod.object({
   "totalSpent": zod.number(),
   "totalBalance": zod.number()
 })
+
+
+/**
+ * @summary List all vendors
+ */
+export const ListVendorsResponseItem = zod.object({
+  "id": zod.number(),
+  "userId": zod.string(),
+  "name": zod.string(),
+  "type": zod.string(),
+  "phone": zod.string().nullish(),
+  "notes": zod.string().nullish(),
+  "createdAt": zod.coerce.date()
+})
+export const ListVendorsResponse = zod.array(ListVendorsResponseItem)
+
+
+/**
+ * @summary Create a new vendor
+ */
+
+
+
+export const CreateVendorBody = zod.object({
+  "name": zod.string().min(1),
+  "type": zod.string(),
+  "phone": zod.string().nullish(),
+  "notes": zod.string().nullish()
+})
+
+export const CreateVendorResponse = zod.object({
+  "id": zod.number(),
+  "userId": zod.string(),
+  "name": zod.string(),
+  "type": zod.string(),
+  "phone": zod.string().nullish(),
+  "notes": zod.string().nullish(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Get vendor by id
+ */
+export const GetVendorParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const GetVendorResponse = zod.object({
+  "id": zod.number(),
+  "userId": zod.string(),
+  "name": zod.string(),
+  "type": zod.string(),
+  "phone": zod.string().nullish(),
+  "notes": zod.string().nullish(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Update a vendor
+ */
+export const UpdateVendorParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+
+
+
+export const UpdateVendorBody = zod.object({
+  "name": zod.string().min(1).optional(),
+  "type": zod.string().optional(),
+  "phone": zod.string().nullish(),
+  "notes": zod.string().nullish()
+})
+
+export const UpdateVendorResponse = zod.object({
+  "id": zod.number(),
+  "userId": zod.string(),
+  "name": zod.string(),
+  "type": zod.string(),
+  "phone": zod.string().nullish(),
+  "notes": zod.string().nullish(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Delete a vendor
+ */
+export const DeleteVendorParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const DeleteVendorResponse = zod.unknown()
 
 
 /**

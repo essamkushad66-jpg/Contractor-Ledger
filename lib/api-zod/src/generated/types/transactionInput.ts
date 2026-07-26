@@ -22,6 +22,7 @@ export interface TransactionInput {
   /** List of object storage paths to uploaded receipts/invoices. */
   receiptPaths?: string[] | null;
   shopName?: string | null;
+  vendorId?: number | null;
   personName?: string | null;
   paymentMethod?: TransactionInputPaymentMethod;
   category?: TransactionInputCategory;

@@ -1,0 +1,119 @@
+import { Hono } from "hono";
+import { eq, desc } from "drizzle-orm";
+import { db, vendorsTable } from "@workspace/db";
+import { VendorInput, VendorUpdate, Vendor as VendorType } from "@workspace/api-zod";
+import { requireAuth } from "../middlewares/requireAuth";
+
+type Env = {
+  Variables: {
+    userId: string
+  }
+}
+
+const router = new Hono<Env>();
+
+router.use("/vendors/*", requireAuth);
+
+router.get("/vendors", async (c) => {
+  const userId = c.get("userId");
+  
+  const vendors = await db
+    .select()
+    .from(vendorsTable)
+    .where(eq(vendorsTable.userId, userId))
+    .orderBy(desc(vendorsTable.createdAt));
+
+  return c.json(vendors as VendorType[]);
+});
+
+router.post("/vendors", async (c) => {
+  const userId = c.get("userId");
+  const body = await c.req.json().catch(() => ({}));
+  const parsed = VendorInput.safeParse(body);
+  
+  if (!parsed.success) {
+    return c.json({ error: parsed.error.message }, 400);
+  }
+
+  const [vendor] = await db
+    .insert(vendorsTable)
+    .values({
+      ...parsed.data,
+      userId,
+    })
+    .returning();
+
+  if (!vendor) {
+    return c.json({ error: "Failed to create vendor" }, 400);
+  }
+
+  return c.json(vendor as VendorType, 201);
+});
+
+router.get("/vendors/:id", async (c) => {
+  const userId = c.get("userId");
+  const id = parseInt(c.req.param("id"), 10);
+  if (isNaN(id)) return c.json({ error: "Invalid id" }, 400);
+
+  const [vendor] = await db
+    .select()
+    .from(vendorsTable)
+    .where(eq(vendorsTable.id, id));
+
+  if (!vendor || vendor.userId !== userId) {
+    return c.json({ error: "Vendor not found" }, 404);
+  }
+
+  return c.json(vendor as VendorType);
+});
+
+router.put("/vendors/:id", async (c) => {
+  const userId = c.get("userId");
+  const id = parseInt(c.req.param("id"), 10);
+  if (isNaN(id)) return c.json({ error: "Invalid id" }, 400);
+
+  const body = await c.req.json().catch(() => ({}));
+  const parsed = VendorUpdate.safeParse(body);
+  
+  if (!parsed.success) {
+    return c.json({ error: parsed.error.message }, 400);
+  }
+
+  const [existing] = await db
+    .select()
+    .from(vendorsTable)
+    .where(eq(vendorsTable.id, id));
+
+  if (!existing || existing.userId !== userId) {
+    return c.json({ error: "Vendor not found" }, 404);
+  }
+
+  const [vendor] = await db
+    .update(vendorsTable)
+    .set(parsed.data)
+    .where(eq(vendorsTable.id, id))
+    .returning();
+
+  return c.json(vendor as VendorType);
+});
+
+router.delete("/vendors/:id", async (c) => {
+  const userId = c.get("userId");
+  const id = parseInt(c.req.param("id"), 10);
+  if (isNaN(id)) return c.json({ error: "Invalid id" }, 400);
+
+  const [existing] = await db
+    .select()
+    .from(vendorsTable)
+    .where(eq(vendorsTable.id, id));
+
+  if (!existing || existing.userId !== userId) {
+    return c.json({ error: "Vendor not found" }, 404);
+  }
+
+  await db.delete(vendorsTable).where(eq(vendorsTable.id, id));
+
+  return c.json({ message: "Deleted" });
+});
+
+export default router;

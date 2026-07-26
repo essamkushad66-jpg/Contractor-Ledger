@@ -13,6 +13,7 @@ import type { TransactionType } from './transactionType';
 export interface Transaction {
   id: number;
   projectId: number;
+  vendorId?: number | null;
   type: TransactionType;
   amount: number;
   description: string;

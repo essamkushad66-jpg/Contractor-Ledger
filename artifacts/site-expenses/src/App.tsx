@@ -7,6 +7,7 @@ import { publishableKeyFromHost } from '@clerk/react/internal';
 import { shadcn } from '@clerk/themes';
 import Dashboard from '@/pages/dashboard';
 import ProjectDetails from '@/pages/project-details';
+import Vendors from '@/pages/vendors';
 import Landing from '@/pages/landing';
 import SignInPage from '@/pages/sign-in';
 import SignUpPage from '@/pages/sign-up';
@@ -146,6 +147,21 @@ function AuthedPrintProject() {
   );
 }
 
+function AuthedVendors() {
+  return (
+    <>
+      <Show when="signed-in">
+        <div className="max-w-3xl mx-auto p-4 md:p-6 pb-20">
+          <Vendors />
+        </div>
+      </Show>
+      <Show when="signed-out">
+        <Redirect to="/" />
+      </Show>
+    </>
+  );
+}
+
 function LogoutButton() {
   const { signOut } = useClerk();
   return (
@@ -192,6 +208,7 @@ function Router() {
       <Route path="/sign-in/*?" component={SignInPage} />
       <Route path="/sign-up/*?" component={SignUpPage} />
       <Route path="/dashboard" component={AuthedDashboard} />
+      <Route path="/vendors" component={AuthedVendors} />
       <Route path="/projects/:id" component={AuthedProjectDetails} />
       <Route path="/projects/:id/print" component={AuthedPrintProject} />
       <Route>
@@ -272,7 +289,10 @@ function ClerkProviderWithRoutes() {
                 {!location.includes('/print') && (
                   <header className="bg-primary text-primary-foreground shadow-md sticky top-0 z-30 print:hidden">
                     <div className="max-w-3xl mx-auto px-4 md:px-6 py-4 flex items-center justify-between">
-                      <h1 className="text-xl font-bold tracking-tight">إدارة مشاريع البناء</h1>
+                      <div className="flex items-center gap-4">
+                        <Link href="/" className="text-xl font-bold tracking-tight hover:opacity-90">المشاريع</Link>
+                        <Link href="/vendors" className="text-xs sm:text-sm font-medium opacity-80 hover:opacity-100">الموردين</Link>
+                      </div>
                       <div className="flex items-center gap-2">
                         <button
                           onClick={handleManualLock}

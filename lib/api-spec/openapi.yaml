@@ -338,6 +338,103 @@ paths:
               schema:
                 $ref: "#/components/schemas/DashboardSummary"
 
+  /vendors:
+    get:
+      operationId: listVendors
+      tags: [vendors]
+      summary: List all vendors
+      responses:
+        "200":
+          description: List of vendors
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Vendor"
+    post:
+      operationId: createVendor
+      tags: [vendors]
+      summary: Create a new vendor
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VendorInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Vendor"
+        "400":
+          description: Invalid input
+
+  /vendors/{id}:
+    get:
+      operationId: getVendor
+      tags: [vendors]
+      summary: Get vendor by id
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Vendor"
+        "404":
+          description: Not found
+    put:
+      operationId: updateVendor
+      tags: [vendors]
+      summary: Update a vendor
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VendorUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Vendor"
+        "400":
+          description: Invalid input
+        "404":
+          description: Not found
+    delete:
+      operationId: deleteVendor
+      tags: [vendors]
+      summary: Delete a vendor
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+        "404":
+          description: Not found
+
   /storage/uploads/request-url:
     post:
       tags: [Storage]
@@ -573,6 +670,9 @@ components:
           type: integer
         projectId:
           type: integer
+        vendorId:
+          type: integer
+          nullable: true
         type:
           type: string
           enum: [deposit, expense]
@@ -666,6 +766,9 @@ components:
         shopName:
           type: string
           nullable: true
+        vendorId:
+          type: integer
+          nullable: true
         personName:
           type: string
           nullable: true
@@ -723,6 +826,9 @@ components:
           description: List of object storage paths to uploaded receipts/invoices.
         shopName:
           type: string
+          nullable: true
+        vendorId:
+          type: integer
           nullable: true
         personName:
           type: string
@@ -805,3 +911,63 @@ components:
         role:
           type: string
           enum: [editor, viewer]
+
+    Vendor:
+      type: object
+      required:
+        - id
+        - userId
+        - name
+        - type
+        - createdAt
+      properties:
+        id:
+          type: integer
+        userId:
+          type: string
+        name:
+          type: string
+        type:
+          type: string
+        phone:
+          type: string
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
+    VendorInput:
+      type: object
+      required:
+        - name
+        - type
+      properties:
+        name:
+          type: string
+          minLength: 1
+        type:
+          type: string
+        phone:
+          type: string
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+
+    VendorUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        type:
+          type: string
+        phone:
+          type: string
+          nullable: true
+        notes:
+          type: string
+          nullable: true

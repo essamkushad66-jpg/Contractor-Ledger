@@ -10,12 +10,15 @@ import {
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { projectsTable } from "./projects";
+import { vendorsTable } from "./vendors";
 
 export const transactionsTable = pgTable("transactions", {
   id: serial("id").primaryKey(),
   projectId: integer("project_id")
     .notNull()
     .references(() => projectsTable.id, { onDelete: "cascade" }),
+  vendorId: integer("vendor_id")
+    .references(() => vendorsTable.id, { onDelete: "set null" }),
   type: text("type", { enum: ["deposit", "expense"] }).notNull(),
   amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
   category: text("category", { enum: ["materials", "labor", "transport", "permits", "equipment", "others"] }).default("others").notNull(),

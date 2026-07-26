@@ -129,6 +129,7 @@ export const TransactionDeductionType = {
 export interface Transaction {
   id: number;
   projectId: number;
+  vendorId?: number | null;
   type: TransactionType;
   amount: number;
   description: string;
@@ -203,6 +204,7 @@ export interface TransactionInput {
   /** List of object storage paths to uploaded receipts/invoices. */
   receiptPaths?: string[] | null;
   shopName?: string | null;
+  vendorId?: number | null;
   personName?: string | null;
   paymentMethod?: TransactionInputPaymentMethod;
   category?: TransactionInputCategory;
@@ -263,6 +265,7 @@ export interface TransactionUpdate {
   /** List of object storage paths to uploaded receipts/invoices. */
   receiptPaths?: string[] | null;
   shopName?: string | null;
+  vendorId?: number | null;
   personName?: string | null;
   paymentMethod?: TransactionUpdatePaymentMethod;
   category?: TransactionUpdateCategory;
@@ -308,5 +311,31 @@ export const InviteMemberBodyRole = {
 export interface InviteMemberBody {
   email: string;
   role: InviteMemberBodyRole;
+}
+
+export interface Vendor {
+  id: number;
+  userId: string;
+  name: string;
+  type: string;
+  phone?: string | null;
+  notes?: string | null;
+  createdAt: string;
+}
+
+export interface VendorInput {
+  /** @minLength 1 */
+  name: string;
+  type: string;
+  phone?: string | null;
+  notes?: string | null;
+}
+
+export interface VendorUpdate {
+  /** @minLength 1 */
+  name?: string;
+  type?: string;
+  phone?: string | null;
+  notes?: string | null;
 }
 

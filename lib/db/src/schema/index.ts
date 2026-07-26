@@ -20,3 +20,4 @@
 export * from "./projects";
 export * from "./transactions";
 export * from "./project_members";
+export * from "./vendors";

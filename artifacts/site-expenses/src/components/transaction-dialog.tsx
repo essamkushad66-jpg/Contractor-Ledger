@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useCreateProjectTransaction, useUpdateTransaction, getListProjectTransactionsQueryKey, getGetProjectQueryKey, getListProjectsQueryKey, getGetDashboardSummaryQueryKey, requestUploadUrl } from "@workspace/api-client-react";
+import { useCreateProjectTransaction, useUpdateTransaction, getListProjectTransactionsQueryKey, getGetProjectQueryKey, getListProjectsQueryKey, getGetDashboardSummaryQueryKey, requestUploadUrl, useListVendors } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, Camera, X } from "lucide-react";
@@ -20,6 +20,7 @@ const transactionSchema = z.object({
   receiptPath: z.string().optional(),
   receiptPaths: z.array(z.string()).optional(),
   shopName: z.string().optional(),
+  vendorId: z.coerce.number().min(1).optional().or(z.literal("")),
   personName: z.string().optional(),
   category: z.enum(["materials", "labor", "transport", "permits", "equipment", "others"]).optional().default("others"),
   paymentMethod: z.enum(["cash", "transfer", "card", "check"]).optional().default("cash"),
@@ -45,6 +46,8 @@ export function TransactionDialog({
   const queryClient = useQueryClient();
   const createMutation = useCreateProjectTransaction();
   const updateMutation = useUpdateTransaction();
+  const { data: vendorsRes } = useListVendors();
+  const vendors = vendorsRes?.data || [];
 
   const isEdit = !!transactionId;
 
@@ -56,6 +59,7 @@ export function TransactionDialog({
       description: "",
       date: new Date().toISOString().split('T')[0],
       shopName: "",
+      vendorId: "",
       personName: "",
       category: "others",
       paymentMethod: "cash",
@@ -80,6 +84,7 @@ export function TransactionDialog({
         amount: "" as unknown as number,
         description: "",
         shopName: "",
+        vendorId: "",
         personName: "",
         category: "others",
         paymentMethod: "cash",
@@ -163,6 +168,9 @@ export function TransactionDialog({
     if (submitData.laborCost === "" || submitData.laborCost === 0) {
       submitData.laborCost = undefined;
     }
+    if (submitData.vendorId === "") {
+      submitData.vendorId = undefined;
+    }
 
     if (isEdit && transactionId) {
       updateMutation.mutate({ id: transactionId, data: submitData as any }, { onSuccess });
@@ -214,6 +222,23 @@ export function TransactionDialog({
           </div>
 
           <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>ارتباط بمورد / مقاول (اختياري)</Label>
+              <Select 
+                value={form.watch("vendorId")?.toString() || ""} 
+                onValueChange={(val: any) => form.setValue("vendorId", val === "" ? "" : Number(val))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="اختر جهة اتصال..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">-- لا يوجد --</SelectItem>
+                  {vendors.map(v => (
+                    <SelectItem key={v.id} value={v.id.toString()}>{v.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="space-y-2">
               <Label>اسم المحل (اختياري)</Label>
               <Input {...form.register("shopName")} placeholder="مثال: شركة الأسمنت" />
