@@ -147,7 +147,7 @@ export default function ProjectDetails() {
 
   const viewReceipt = async (path: string) => {
     try {
-      const toastId = toast.loading("جاري تحميل الصورة...");
+      const toastId = toast.loading("جاري تحميل المرفق...");
       
       let blob: Blob;
       if (path.startsWith('data:')) {
@@ -161,7 +161,8 @@ export default function ProjectDetails() {
         }
         blob = new Blob([u8arr], {type:mime});
       } else {
-        const res = await customFetch(path) as unknown as Response;
+        const fetchPath = path.startsWith('/objects/') ? `/storage${path}` : path;
+        const res = await customFetch(fetchPath) as unknown as Response;
         blob = await res.blob();
       }
       
@@ -169,7 +170,7 @@ export default function ProjectDetails() {
       window.open(url, "_blank");
       toast.dismiss(toastId);
     } catch (e) {
-      toast.error("فشل تحميل الصورة. قد تكون محذوفة أو لا تملك صلاحية.");
+      toast.error("فشل تحميل المرفق. قد يكون محذوفاً أو لا تملك صلاحية.");
       toast.dismiss();
     }
   };
@@ -419,13 +420,15 @@ export default function ProjectDetails() {
                     <div className="flex gap-1 print:hidden shrink-0">
                       {(tx as any).receiptPaths && (tx as any).receiptPaths.length > 0 ? (
                         (tx as any).receiptPaths.map((path: string, idx: number) => (
-                          <Button key={idx} variant="ghost" size="icon" className="h-8 w-8 text-primary hover:bg-primary/10 hover:text-primary" onClick={() => viewReceipt(path)} title={`عرض الإيصال ${idx + 1}`}>
-                            <ImageIcon className="h-4 w-4" />
+                          <Button key={idx} variant="outline" size="sm" className="h-8 gap-1.5 border-primary/20 text-primary hover:bg-primary/10 hover:text-primary" onClick={() => viewReceipt(path)} title={`عرض المرفق ${idx + 1}`}>
+                            <ImageIcon className="h-3.5 w-3.5" />
+                            <span className="text-xs">المرفق {idx + 1}</span>
                           </Button>
                         ))
                       ) : tx.receiptPath ? (
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-primary hover:bg-primary/10 hover:text-primary" onClick={() => viewReceipt(tx.receiptPath!)} title="عرض الإيصال">
-                          <ImageIcon className="h-4 w-4" />
+                        <Button variant="outline" size="sm" className="h-8 gap-1.5 border-primary/20 text-primary hover:bg-primary/10 hover:text-primary" onClick={() => viewReceipt(tx.receiptPath!)} title="عرض المرفق">
+                          <ImageIcon className="h-3.5 w-3.5" />
+                          <span className="text-xs">عرض المرفق</span>
                         </Button>
                       ) : null}
                     {project.currentUserRole !== 'viewer' && (
