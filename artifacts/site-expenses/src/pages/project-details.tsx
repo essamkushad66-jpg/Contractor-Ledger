@@ -187,15 +187,15 @@ export default function ProjectDetails() {
 
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-start sm:items-center gap-3">
-          <Link href="/" className="p-2 -ml-2 rounded-full hover:bg-muted text-muted-foreground transition-colors print:hidden">
+        <div className="flex items-start sm:items-center gap-3 min-w-0">
+          <Link href="/" className="p-2 -ml-2 rounded-full hover:bg-muted text-muted-foreground transition-colors shrink-0 print:hidden">
             <ArrowLeft className="h-5 w-5" />
           </Link>
-          <div>
-            <h2 className="text-2xl font-bold tracking-tight">{project.name}</h2>
-            <div className="flex items-center gap-3 text-sm text-muted-foreground mt-1">
-              <span className="flex items-center gap-1"><Building2 className="h-3 w-3" /> {project.clientName}</span>
-              {project.location && <span className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {project.location}</span>}
+          <div className="min-w-0">
+            <h2 className="text-xl sm:text-2xl font-bold tracking-tight truncate" title={project.name}>{project.name}</h2>
+            <div className="flex items-center gap-3 text-sm text-muted-foreground mt-1 truncate">
+              <span className="flex items-center gap-1 shrink-0"><Building2 className="h-3 w-3" /> <span className="truncate max-w-[120px] sm:max-w-none">{project.clientName}</span></span>
+              {project.location && <span className="flex items-center gap-1 shrink-0"><MapPin className="h-3 w-3" /> <span className="truncate max-w-[100px] sm:max-w-none">{project.location}</span></span>}
             </div>
           </div>
         </div>
@@ -231,7 +231,7 @@ export default function ProjectDetails() {
       <Card className={`overflow-hidden border-2 ${project.balance >= 0 ? 'border-success/30 bg-success/5' : 'border-destructive/30 bg-destructive/5'} print:border-foreground/20 print:bg-transparent print:shadow-none`}>
         <CardContent className="p-8 sm:p-10 text-center">
           <p className="text-sm sm:text-base font-medium text-muted-foreground mb-2">الرصيد المتبقي في الجيب</p>
-          <div className={`text-5xl sm:text-6xl font-black tracking-tight ${project.balance >= 0 ? 'text-success' : 'text-destructive'} print:text-foreground`}>
+          <div className={`text-4xl sm:text-5xl md:text-6xl font-black tracking-tight ${project.balance >= 0 ? 'text-success' : 'text-destructive'} print:text-foreground break-words`}>
             {formatCurrency(project.balance)}
           </div>
           
@@ -256,28 +256,32 @@ export default function ProjectDetails() {
               <Progress value={Math.min(100, (project.totalSpent / Number(project.budget)) * 100)} className="h-2" />
             </div>
           )}
-          {(totalTransport > 0 || totalLabor > 0 || totalDeduction > 0) && (
-            <div className="grid grid-cols-3 gap-2 mt-4 pt-4 border-t border-border/50 text-xs sm:text-sm">
-              {totalDeduction > 0 && (
-                <div>
-                  <p className="text-muted-foreground mb-0.5">عمولات وخصومات</p>
-                  <p className="font-bold text-destructive">{formatCurrency(totalDeduction)}</p>
-                </div>
-              )}
-              {totalTransport > 0 && (
-                <div>
-                  <p className="text-muted-foreground mb-0.5">نقل وتوصيل</p>
-                  <p className="font-bold text-blue-600 dark:text-blue-400">{formatCurrency(totalTransport)}</p>
-                </div>
-              )}
-              {totalLabor > 0 && (
-                <div>
-                  <p className="text-muted-foreground mb-0.5">يد عاملة</p>
-                  <p className="font-bold text-amber-600 dark:text-amber-500">{formatCurrency(totalLabor)}</p>
-                </div>
-              )}
-            </div>
-          )}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 mt-6 pt-6 border-t border-border/50">
+            {totalDeduction > 0 && (
+              <div className="bg-destructive/10 rounded-lg p-3">
+                <p className="text-xs text-muted-foreground mb-1">عمولات وخصومات</p>
+                <p className="font-bold text-sm text-destructive truncate">{formatCurrency(totalDeduction)}</p>
+              </div>
+            )}
+            {totalTransport > 0 && (
+              <div className="bg-blue-500/10 rounded-lg p-3">
+                <p className="text-xs text-muted-foreground mb-1">نقل وتوصيل</p>
+                <p className="font-bold text-sm text-blue-600 dark:text-blue-400 truncate">{formatCurrency(totalTransport)}</p>
+              </div>
+            )}
+            {totalLabor > 0 && (
+              <div className="bg-amber-500/10 rounded-lg p-3">
+                <p className="text-xs text-muted-foreground mb-1">يد عاملة</p>
+                <p className="font-bold text-sm text-amber-600 dark:text-amber-500 truncate">{formatCurrency(totalLabor)}</p>
+              </div>
+            )}
+            {categoryData.filter(c => !['transport', 'labor'].includes(c.name)).map(cat => (
+              <div key={cat.name} className="bg-muted/30 rounded-lg p-3">
+                <p className="text-xs text-muted-foreground mb-1">{CATEGORY_LABELS[cat.name] || cat.name}</p>
+                <p className="font-bold text-sm truncate" title={formatCurrency(cat.value)}>{formatCurrency(cat.value)}</p>
+              </div>
+            ))}
+          </div>
         </CardContent>
       </Card>
 
