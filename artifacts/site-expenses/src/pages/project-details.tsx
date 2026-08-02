@@ -161,7 +161,7 @@ export default function ProjectDetails() {
         }
         blob = new Blob([u8arr], {type:mime});
       } else {
-        const fetchPath = path.startsWith('/objects/') ? `/storage${path}` : path;
+        const fetchPath = path.startsWith('/objects/') ? `/api/storage${path}` : path;
         blob = await customFetch(fetchPath, { responseType: 'blob' }) as Blob;
       }
       
