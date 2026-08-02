@@ -162,8 +162,7 @@ export default function ProjectDetails() {
         blob = new Blob([u8arr], {type:mime});
       } else {
         const fetchPath = path.startsWith('/objects/') ? `/storage${path}` : path;
-        const res = await customFetch(fetchPath) as unknown as Response;
-        blob = await res.blob();
+        blob = await customFetch(fetchPath, { responseType: 'blob' }) as Blob;
       }
       
       const url = URL.createObjectURL(blob);
