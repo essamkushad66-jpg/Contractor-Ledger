@@ -1,6 +1,6 @@
 import { Hono } from "hono";
-import { eq, desc } from "drizzle-orm";
-import { db, vendorsTable } from "@workspace/db";
+import { eq, desc, and } from "drizzle-orm";
+import { db, vendorsTable, transactionsTable, projectsTable } from "@workspace/db";
 import { CreateVendorBody, UpdateVendorBody, Vendor as VendorType } from "@workspace/api-zod";
 import { requireAuth } from "../middlewares/requireAuth";
 
@@ -114,6 +114,40 @@ router.delete("/vendors/:id", async (c) => {
   await db.delete(vendorsTable).where(eq(vendorsTable.id, id));
 
   return c.json({ message: "Deleted" });
+});
+
+router.get("/vendors/:id/transactions", async (c) => {
+  const userId = c.get("userId");
+  const vendorId = parseInt(c.req.param("id"), 10);
+  if (isNaN(vendorId)) return c.json({ error: "Invalid id" }, 400);
+
+  const transactions = await db
+    .select({
+      id: transactionsTable.id,
+      projectId: transactionsTable.projectId,
+      amount: transactionsTable.amount,
+      date: transactionsTable.date,
+      description: transactionsTable.description,
+      category: transactionsTable.category,
+      vendorId: transactionsTable.vendorId,
+      receiptPath: transactionsTable.receiptPath,
+      type: transactionsTable.type,
+      createdAt: transactionsTable.createdAt,
+    })
+    .from(transactionsTable)
+    .innerJoin(projectsTable, eq(transactionsTable.projectId, projectsTable.id))
+    .where(
+      and(
+        eq(transactionsTable.vendorId, vendorId),
+        eq(projectsTable.userId, userId)
+      )
+    )
+    .orderBy(desc(transactionsTable.date));
+
+  return c.json(transactions.map(t => ({
+    ...t,
+    amount: t.amount ? Number(t.amount) : 0
+  })));
 });
 
 export default router;

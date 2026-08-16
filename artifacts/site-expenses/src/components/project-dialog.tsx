@@ -11,11 +11,14 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
 const projectSchema = z.object({
   name: z.string().min(1, "اسم المشروع مطلوب"),
   clientName: z.string().min(1, "اسم المالك مطلوب"),
   location: z.string().optional(),
   budget: z.number().or(z.string().transform(val => val === '' ? undefined : Number(val))).optional(),
+  baseCurrency: z.string().optional().default("LYD"),
   notes: z.string().optional(),
 });
 
@@ -42,6 +45,7 @@ export function ProjectDialog({
       clientName: "",
       location: "",
       budget: undefined,
+      baseCurrency: "LYD",
       notes: ""
     }
   });
@@ -94,6 +98,23 @@ export function ProjectDialog({
           <div className="space-y-2">
             <Label>الميزانية التقديرية (د.ل) - اختياري</Label>
             <Input type="number" step="0.01" {...form.register("budget")} placeholder="مثال: 150000" dir="ltr" />
+          </div>
+          <div className="space-y-2">
+            <Label>العملة الأساسية</Label>
+            <Select 
+              value={form.watch("baseCurrency")} 
+              onValueChange={(val) => form.setValue("baseCurrency", val)}
+              dir="rtl"
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="اختر العملة" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="LYD">دينار ليبي (LYD)</SelectItem>
+                <SelectItem value="USD">دولار أمريكي (USD)</SelectItem>
+                <SelectItem value="EUR">يورو (EUR)</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <div className="space-y-2">
             <Label>ملاحظات (اختياري)</Label>

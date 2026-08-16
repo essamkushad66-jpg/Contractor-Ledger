@@ -16,4 +16,5 @@ export const ProjectCurrentUserRole = {
   owner: 'owner',
   editor: 'editor',
   viewer: 'viewer',
+  site_manager: 'site_manager',
 } as const;

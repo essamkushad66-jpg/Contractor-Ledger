@@ -1,6 +1,6 @@
 import { Hono } from "hono";
-import { eq, sql } from "drizzle-orm";
-import { db, projectsTable, transactionsTable } from "@workspace/db";
+import { eq, sql, or, inArray } from "drizzle-orm";
+import { db, projectsTable, transactionsTable, projectMembersTable } from "@workspace/db";
 import { GetDashboardSummaryResponse } from "@workspace/api-zod";
 import { requireAuth } from "../middlewares/requireAuth";
 
@@ -17,10 +17,19 @@ router.use("*", requireAuth);
 router.get("/dashboard/summary", async (c) => {
   const userId = c.get("userId");
   
+  const memberProjectIds = db.select({ id: projectMembersTable.projectId })
+    .from(projectMembersTable)
+    .where(eq(projectMembersTable.userId, userId));
+
   const [{ projectCount }] = await db
     .select({ projectCount: sql<number>`COUNT(*)::int` })
     .from(projectsTable)
-    .where(eq(projectsTable.userId, userId));
+    .where(
+      or(
+        eq(projectsTable.userId, userId),
+        inArray(projectsTable.id, memberProjectIds)
+      )
+    );
 
   const [{ totalReceived, totalSpent }] = await db
     .select({
@@ -32,7 +41,12 @@ router.get("/dashboard/summary", async (c) => {
       projectsTable,
       eq(transactionsTable.projectId, projectsTable.id),
     )
-    .where(eq(projectsTable.userId, userId));
+    .where(
+      or(
+        eq(projectsTable.userId, userId),
+        inArray(projectsTable.id, memberProjectIds)
+      )
+    );
 
   const received = Number(totalReceived ?? 0);
   const spent = Number(totalSpent ?? 0);

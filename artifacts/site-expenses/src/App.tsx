@@ -14,6 +14,7 @@ import SignUpPage from '@/pages/sign-up';
 import { ThemeProvider } from '@/components/theme-provider';
 import { ThemeToggle } from '@/components/theme-toggle';
 import PrintProject from '@/pages/print-project';
+import VendorDetails from '@/pages/vendor-details';
 import { AppLockProvider, PinSettingsDialog } from '@/components/pin-lock';
 import { Lock } from 'lucide-react';
 
@@ -162,6 +163,21 @@ function AuthedVendors() {
   );
 }
 
+function AuthedVendorDetails() {
+  return (
+    <>
+      <Show when="signed-in">
+        <div className="max-w-3xl mx-auto p-4 md:p-6 pb-20">
+          <VendorDetails />
+        </div>
+      </Show>
+      <Show when="signed-out">
+        <Redirect to="/" />
+      </Show>
+    </>
+  );
+}
+
 function LogoutButton() {
   const { signOut } = useClerk();
   return (
@@ -209,6 +225,7 @@ function Router() {
       <Route path="/sign-up/*?" component={SignUpPage} />
       <Route path="/dashboard" component={AuthedDashboard} />
       <Route path="/vendors" component={AuthedVendors} />
+      <Route path="/vendors/:id" component={AuthedVendorDetails} />
       <Route path="/projects/:id" component={AuthedProjectDetails} />
       <Route path="/projects/:id/print" component={AuthedPrintProject} />
       <Route>

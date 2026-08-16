@@ -5,7 +5,7 @@ import { formatCurrency, formatDate } from "@/lib/format";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { ArrowUpRight, ArrowDownRight, Edit, Trash2, Building2, MapPin, Loader2, ArrowLeft, Printer, Download, Image as ImageIcon, Users, Upload, Search, Filter } from "lucide-react";
+import { ArrowUpRight, ArrowDownRight, Edit, Trash2, Building2, MapPin, Loader2, ArrowLeft, Printer, Download, Image as ImageIcon, Users, Upload, Search, Filter, AlertTriangle, TrendingUp, TrendingDown, Percent, Camera } from "lucide-react";
 import { Link } from "wouter";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend } from "recharts";
 import { Input } from "@/components/ui/input";
@@ -17,15 +17,23 @@ import { TransactionDialog } from "@/components/transaction-dialog";
 import { MembersDialog } from "@/components/members-dialog";
 import { ImportDialog } from "@/components/import-dialog";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { useQueryClient } from "@tanstack/react-query";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { PhotoUploadDialog } from "@/components/photo-upload-dialog";
+import { RecurringDialog } from "@/components/recurring-dialog";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useDeleteTransaction, getListProjectTransactionsQueryKey, getGetProjectQueryKey } from "@workspace/api-client-react";
+import { ChangeOrderDialog } from "@/components/change-order-dialog";
 
 export default function ProjectDetails() {
   const { id } = useParams();
   const projectId = Number(id);
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
+
+  const [viewingReceipt, setViewingReceipt] = useState<{url: string, type: string} | null>(null);
 
   const { data: project, isLoading: isLoadingProject } = useGetProject(projectId);
   const { data: transactions, isLoading: isLoadingTransactions } = useListProjectTransactions(projectId);
@@ -46,6 +54,31 @@ export default function ProjectDetails() {
   const [editTransactionDefault, setEditTransactionDefault] = useState<any>();
   
   const [deleteTransactionId, setDeleteTransactionId] = useState<number | undefined>();
+  const [changeOrderDialogOpen, setChangeOrderDialogOpen] = useState(false);
+  const [photoDialogOpen, setPhotoDialogOpen] = useState(false);
+  const [recurringDialogOpen, setRecurringDialogOpen] = useState(false);
+
+  // Queries for new tabs
+  const { data: photos, isLoading: isLoadingPhotos } = useQuery({
+    queryKey: [`/api/projects/${projectId}/photos`],
+    queryFn: () => customFetch(`/api/projects/${projectId}/photos`)
+  });
+
+  const { data: recurringList, isLoading: isLoadingRecurring } = useQuery({
+    queryKey: [`/api/projects/${projectId}/recurring`],
+    queryFn: () => customFetch(`/api/projects/${projectId}/recurring`),
+    enabled: project?.currentUserRole !== 'site_manager'
+  });
+
+  const { data: changeOrders } = useQuery({
+    queryKey: ["change-orders", projectId],
+    queryFn: () => customFetch(`/api/projects/${projectId}/change-orders`),
+  });
+
+  const { data: activities } = useQuery({
+    queryKey: ["activity", projectId],
+    queryFn: () => customFetch(`/api/projects/${projectId}/activity`),
+  });
 
   // Filtering states
   const [searchTerm, setSearchTerm] = useState("");
@@ -54,6 +87,7 @@ export default function ProjectDetails() {
 
   const filteredTransactions = useMemo(() => {
     return transactions?.filter(tx => {
+      if (project?.currentUserRole === 'site_manager' && tx.type === 'deposit') return false;
       if (typeFilter !== "all" && tx.type !== typeFilter) return false;
       if (categoryFilter !== "all" && (tx as any).category !== categoryFilter) return false;
       if (searchTerm) {
@@ -64,7 +98,7 @@ export default function ProjectDetails() {
       }
       return true;
     });
-  }, [transactions, typeFilter, categoryFilter, searchTerm]);
+  }, [transactions, typeFilter, categoryFilter, searchTerm, project?.currentUserRole]);
 
   const categoryData = useMemo(() => {
     if (!transactions) return [];
@@ -94,6 +128,12 @@ export default function ProjectDetails() {
     equipment: 'معدات',
     others: 'أخرى',
   };
+
+  const adjustedBudget = useMemo(() => {
+    if (!project?.budget) return 0;
+    const approvedSum = (changeOrders as any[])?.filter(co => co.status === 'approved').reduce((acc, co) => acc + Number(co.amountChange), 0) || 0;
+    return Number(project.budget) + approvedSum;
+  }, [project?.budget, changeOrders]);
 
   const { totalTransport, totalLabor, totalDeduction } = useMemo(() => {
     let t = 0, l = 0, d = 0;
@@ -166,7 +206,7 @@ export default function ProjectDetails() {
       }
       
       const url = URL.createObjectURL(blob);
-      window.open(url, "_blank");
+      setViewingReceipt({ url, type: blob.type });
       toast.dismiss(toastId);
     } catch (e) {
       toast.error("فشل تحميل المرفق. قد يكون محذوفاً أو لا تملك صلاحية.");
@@ -185,7 +225,6 @@ export default function ProjectDetails() {
   return (
     <div className="space-y-6 pb-20">
 
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-start sm:items-center gap-3 min-w-0">
           <Link href="/" className="p-2 -ml-2 rounded-full hover:bg-muted text-muted-foreground transition-colors shrink-0 print:hidden">
@@ -194,8 +233,8 @@ export default function ProjectDetails() {
           <div className="min-w-0">
             <h2 className="text-xl sm:text-2xl font-bold tracking-tight truncate" title={project.name}>{project.name}</h2>
             <div className="flex items-center gap-3 text-sm text-muted-foreground mt-1 truncate">
-              <span className="flex items-center gap-1 shrink-0"><Building2 className="h-3 w-3" /> <span className="truncate max-w-[120px] sm:max-w-none">{project.clientName}</span></span>
-              {project.location && <span className="flex items-center gap-1 shrink-0"><MapPin className="h-3 w-3" /> <span className="truncate max-w-[100px] sm:max-w-none">{project.location}</span></span>}
+              <span className="flex items-center gap-1 shrink-0"><Building2 className="h-3 w-3" /> <span className="truncate max-w-[120px] sm:w-auto">{project.clientName}</span></span>
+              {project.location && <span className="flex items-center gap-1 shrink-0"><MapPin className="h-3 w-3" /> <span className="truncate max-w-[100px] sm:w-auto">{project.location}</span></span>}
             </div>
           </div>
         </div>
@@ -227,7 +266,33 @@ export default function ProjectDetails() {
         </div>
       </div>
 
-      {/* Massive Balance Card */}
+      {project.currentUserRole !== 'site_manager' && adjustedBudget > 0 && (() => {
+        const spentPercent = (project.totalSpent / adjustedBudget) * 100;
+        if (spentPercent >= 100) {
+          return (
+            <div className="bg-destructive/20 text-destructive border-r-4 border-destructive p-4 rounded-md flex items-center gap-3 print:hidden">
+              <AlertTriangle className="h-5 w-5 shrink-0" />
+              <p className="font-bold">❌ تجاوز المصاريف الميزانية المخصصة!</p>
+            </div>
+          );
+        } else if (spentPercent >= 95) {
+          return (
+            <div className="bg-destructive/10 text-destructive border-r-4 border-destructive p-4 rounded-md flex items-center gap-3 print:hidden">
+              <AlertTriangle className="h-5 w-5 shrink-0" />
+              <p className="font-bold">🚨 تم صرف 95% من الميزانية! يرجى مراجعة المصاريف</p>
+            </div>
+          );
+        } else if (spentPercent >= 80) {
+          return (
+            <div className="bg-amber-500/10 text-amber-600 dark:text-amber-500 border-r-4 border-amber-500 p-4 rounded-md flex items-center gap-3 print:hidden">
+              <AlertTriangle className="h-5 w-5 shrink-0" />
+              <p className="font-bold">⚠️ تم صرف 80% من الميزانية المخصصة</p>
+            </div>
+          );
+        }
+        return null;
+      })()}
+
       <Card className={`overflow-hidden border-2 ${project.balance >= 0 ? 'border-success/30 bg-success/5' : 'border-destructive/30 bg-destructive/5'} print:border-foreground/20 print:bg-transparent print:shadow-none`}>
         <CardContent className="p-8 sm:p-10 text-center">
           <p className="text-sm sm:text-base font-medium text-muted-foreground mb-2">الرصيد المتبقي في الجيب</p>
@@ -235,25 +300,27 @@ export default function ProjectDetails() {
             {formatCurrency(project.balance)}
           </div>
           
-          <div className="grid grid-cols-2 gap-4 mt-8 pt-6 border-t border-border/50 text-sm">
-            <div>
-              <p className="text-muted-foreground mb-1">إجمالي المستلم</p>
-              <p className="text-xl font-bold text-success">{formatCurrency(project.totalReceived)}</p>
-            </div>
+          <div className={`grid ${project.currentUserRole === 'site_manager' ? 'grid-cols-1' : 'grid-cols-2'} gap-4 mt-8 pt-6 border-t border-border/50 text-sm`}>
+            {project.currentUserRole !== 'site_manager' && (
+              <div>
+                <p className="text-muted-foreground mb-1">إجمالي المستلم</p>
+                <p className="text-xl font-bold text-success">{formatCurrency(project.totalReceived)}</p>
+              </div>
+            )}
             <div>
               <p className="text-muted-foreground mb-1">إجمالي المصروف</p>
               <p className="text-xl font-bold text-destructive">{formatCurrency(project.totalSpent)}</p>
             </div>
           </div>
-          {project.budget && Number(project.budget) > 0 && (
+          {project.currentUserRole !== 'site_manager' && adjustedBudget > 0 && (
             <div className="mt-6 pt-4 border-t border-border/50">
               <div className="flex justify-between items-end mb-2">
                 <p className="text-sm font-bold text-muted-foreground">
-                  الميزانية: <span className="text-foreground">{formatCurrency(Number(project.budget))}</span>
+                  الميزانية: <span className="text-foreground">{formatCurrency(adjustedBudget)}</span>
                 </p>
-                <span className="text-xs font-bold bg-muted px-2 py-0.5 rounded-full">{Math.round((project.totalSpent / Number(project.budget)) * 100)}%</span>
+                <span className="text-xs font-bold bg-muted px-2 py-0.5 rounded-full">{Math.round((project.totalSpent / adjustedBudget) * 100)}%</span>
               </div>
-              <Progress value={Math.min(100, (project.totalSpent / Number(project.budget)) * 100)} className="h-2" />
+              <Progress value={Math.min(100, (project.totalSpent / adjustedBudget) * 100)} className="h-2" />
             </div>
           )}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 mt-6 pt-6 border-t border-border/50">
@@ -285,13 +352,48 @@ export default function ProjectDetails() {
         </CardContent>
       </Card>
 
-      {/* Action Buttons */}
+      {project.currentUserRole !== 'site_manager' && (
+        <Card className="print:hidden border-border/50">
+          <CardContent className="p-6">
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div className="flex items-center gap-4 w-full sm:w-auto">
+              <div className={`p-3 rounded-full shrink-0 ${project.balance >= 0 ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'}`}>
+                {project.balance >= 0 ? <TrendingUp className="h-6 w-6" /> : <TrendingDown className="h-6 w-6" />}
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">إجمالي الربح (الرصيد)</p>
+                <p className={`text-2xl font-bold ${project.balance >= 0 ? 'text-success' : 'text-destructive'}`}>
+                  {formatCurrency(project.balance)}
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-4 border-t sm:border-t-0 sm:border-r border-border/50 pt-4 sm:pt-0 sm:pr-6 w-full sm:w-auto">
+              <div className="p-3 rounded-full shrink-0 bg-primary/10 text-primary">
+                <Percent className="h-6 w-6" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">هامش الربح الصافي</p>
+                <p className="text-2xl font-bold">
+                  {project.totalReceived > 0 
+                    ? `${((project.balance / project.totalReceived) * 100).toFixed(1)}%` 
+                    : '0%'}
+                </p>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+      )}
+
       {project.currentUserRole !== 'viewer' && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 print:hidden">
-          <Button size="lg" variant="success" className="h-14 text-base shadow-sm" onClick={() => openTransactionDialog("deposit")}>
-            <ArrowDownRight className="ml-2 h-5 w-5" />
-            تسجيل دفعة مستلمة
-          </Button>
+        <div className={`grid ${project.currentUserRole === 'site_manager' ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2'} gap-4 print:hidden`}>
+          {project.currentUserRole !== 'site_manager' && (
+            <Button size="lg" variant="success" className="h-14 text-base shadow-sm" onClick={() => openTransactionDialog("deposit")}>
+              <ArrowDownRight className="ml-2 h-5 w-5" />
+              تسجيل دفعة مستلمة
+            </Button>
+          )}
           <Button size="lg" variant="destructive" className="h-14 text-base shadow-sm" onClick={() => openTransactionDialog("expense")}>
             <ArrowUpRight className="ml-2 h-5 w-5" />
             تسجيل مصروف
@@ -299,8 +401,22 @@ export default function ProjectDetails() {
         </div>
       )}
 
-      {/* Analytics & Charts */}
-      {categoryData.length > 0 && (
+      <Tabs defaultValue="transactions" className="mt-8 space-y-6">
+        <TabsList className="w-full justify-start overflow-x-auto overflow-y-hidden border-b rounded-none h-auto p-0 bg-transparent gap-6 print:hidden">
+          <TabsTrigger value="transactions" className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-2 py-3 shadow-none">سجل الحركات</TabsTrigger>
+          <TabsTrigger value="gallery" className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-2 py-3 shadow-none">معرض الصور</TabsTrigger>
+          {project.currentUserRole !== 'site_manager' && (
+            <>
+              <TabsTrigger value="recurring" className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-2 py-3 shadow-none">مصاريف دورية</TabsTrigger>
+              <TabsTrigger value="change-orders" className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-2 py-3 shadow-none">أوامر التغيير</TabsTrigger>
+              <TabsTrigger value="activity" className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-2 py-3 shadow-none">سجل النشاط</TabsTrigger>
+            </>
+          )}
+        </TabsList>
+
+        <TabsContent value="transactions" className="space-y-6 m-0">
+          {/* Analytics & Charts */}
+          {categoryData.length > 0 && (
         <Card className="print:hidden shadow-sm mt-8">
           <CardContent className="p-4 sm:p-6 flex flex-col items-center">
             <h3 className="text-lg font-bold mb-4 w-full text-center">تحليل المصاريف حسب التصنيف</h3>
@@ -350,7 +466,7 @@ export default function ProjectDetails() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">جميع الحركات</SelectItem>
-            <SelectItem value="deposit">الدفعات المستلمة فقط</SelectItem>
+            {project.currentUserRole !== 'site_manager' && <SelectItem value="deposit">الدفعات المستلمة فقط</SelectItem>}
             <SelectItem value="expense">المصاريف فقط</SelectItem>
           </SelectContent>
         </Select>
@@ -405,6 +521,18 @@ export default function ProjectDetails() {
                         <span className="opacity-100 mr-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-primary/10 text-primary">
                           {CATEGORY_LABELS[(tx as any).category] || (tx as any).category}
                         </span>
+                      )}
+                      {(tx as any).latitude && (tx as any).longitude && (
+                        <a
+                          href={`https://www.google.com/maps?q=${(tx as any).latitude},${(tx as any).longitude}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-0.5 text-primary hover:underline whitespace-nowrap"
+                          title="عرض الموقع على الخريطة"
+                        >
+                          <MapPin className="h-3 w-3" />
+                          <span className="text-[10px]">الموقع</span>
+                        </a>
                       )}
                     </p>
                   </div>
@@ -511,8 +639,161 @@ export default function ProjectDetails() {
           </div>
         )}
       </div>
+      </TabsContent>
+
+      <TabsContent value="gallery" className="mt-6">
+        <div className="flex justify-between items-center mb-6">
+          <h3 className="text-lg font-bold">صور الموقع</h3>
+          <Button onClick={() => setPhotoDialogOpen(true)} variant="outline">
+            <Camera className="mr-2 h-4 w-4" />
+            إضافة صورة
+          </Button>
+        </div>
+        
+        {isLoadingPhotos ? (
+          <div className="flex justify-center p-8"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
+        ) : !photos || (photos as any[]).length === 0 ? (
+          <div className="text-center p-10 border border-dashed rounded-xl text-muted-foreground bg-muted/20">
+            لا توجد صور مضافة للمشروع.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {(photos as any[]).map((photo) => (
+              <Card key={photo.id} className="overflow-hidden cursor-pointer hover:ring-2 ring-primary transition-all" onClick={() => viewReceipt(photo.photoPath)}>
+                <div className="aspect-square bg-muted relative">
+                  <img 
+                    src={photo.photoPath.startsWith('http') ? photo.photoPath : `/api/storage${photo.photoPath}`} 
+                    alt={photo.caption || 'صورة'} 
+                    className="object-cover w-full h-full"
+                  />
+                </div>
+                <CardContent className="p-3">
+                  {photo.caption && <p className="text-sm font-medium line-clamp-2 mb-1">{photo.caption}</p>}
+                  <p className="text-xs text-muted-foreground">{formatDate(photo.takenAt)}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </TabsContent>
+
+      {project.currentUserRole !== 'site_manager' && (
+        <TabsContent value="recurring" className="mt-6">
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-lg font-bold">المصاريف الدورية</h3>
+            <Button onClick={() => setRecurringDialogOpen(true)} variant="outline">
+              <ArrowUpRight className="mr-2 h-4 w-4" />
+              إضافة مصروف دوري
+            </Button>
+          </div>
+
+          {isLoadingRecurring ? (
+            <div className="flex justify-center p-8"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
+          ) : !recurringList || (recurringList as any[]).length === 0 ? (
+            <div className="text-center p-10 border border-dashed rounded-xl text-muted-foreground bg-muted/20">
+              لا توجد مصاريف دورية مضافة للمشروع.
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {(recurringList as any[]).map((item) => (
+                <div key={item.id} className="flex items-center justify-between p-4 bg-card border rounded-lg shadow-sm">
+                  <div>
+                    <p className="font-bold">{item.description}</p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      المبلغ: <span className="font-bold text-foreground" dir="ltr">{formatCurrency(item.amount)}</span> • 
+                      تكرار: {item.frequency === 'weekly' ? 'أسبوعي' : item.frequency === 'biweekly' ? 'نصف شهري' : 'شهري'}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">الموعد القادم: {formatDate(item.nextRunDate)}</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Label htmlFor={`active-${item.id}`} className="text-sm">نشط</Label>
+                    <Switch 
+                      id={`active-${item.id}`}
+                      checked={item.isActive} 
+                      onCheckedChange={async (checked) => {
+                        try {
+                          await customFetch(`/api/recurring/${item.id}`, {
+                            method: "PATCH",
+                            body: JSON.stringify({ isActive: checked })
+                          });
+                          queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/recurring`] });
+                          toast.success("تم تحديث حالة المصروف الدوري");
+                        } catch (e) {
+                          toast.error("فشل التحديث");
+                        }
+                      }} 
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+      )}
+
+        {project.currentUserRole !== 'site_manager' && (
+          <>
+            <TabsContent value="change-orders" className="space-y-4 m-0">
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-bold">أوامر التغيير</h3>
+                <Button onClick={() => setChangeOrderDialogOpen(true)}>
+                  إضافة أمر تغيير
+                </Button>
+              </div>
+              {!changeOrders || (changeOrders as any[]).length === 0 ? (
+                <div className="text-center p-10 border border-dashed rounded-xl text-muted-foreground bg-muted/20">
+                  لا توجد أوامر تغيير مسجلة.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {(changeOrders as any[]).map((co) => (
+                    <div key={co.id} className="p-4 bg-card border rounded-lg shadow-sm flex flex-col sm:flex-row justify-between gap-4">
+                      <div>
+                        <p className="font-bold">{co.title}</p>
+                        {co.description && <p className="text-sm text-muted-foreground mt-1">{co.description}</p>}
+                        <p className="text-xs text-muted-foreground mt-2">{formatDate(co.createdAt)}</p>
+                      </div>
+                      <div className="flex flex-col items-end gap-2 shrink-0">
+                        <span className="font-bold text-lg">{formatCurrency(co.amountChange)}</span>
+                        <span className={`px-2 py-1 rounded text-xs font-bold ${co.status === 'approved' ? 'bg-success/20 text-success' : co.status === 'rejected' ? 'bg-destructive/20 text-destructive' : 'bg-amber-500/20 text-amber-600'}`}>
+                          {co.status === 'approved' ? 'موافق عليه' : co.status === 'rejected' ? 'مرفوض' : 'قيد المراجعة'}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+            
+            <TabsContent value="activity" className="space-y-4 m-0">
+              <h3 className="text-lg font-bold">سجل النشاط</h3>
+              {!activities || (activities as any[]).length === 0 ? (
+                <div className="text-center p-10 border border-dashed rounded-xl text-muted-foreground bg-muted/20">
+                  لا توجد نشاطات مسجلة.
+                </div>
+              ) : (
+                <div className="space-y-4 border-r-2 border-muted pr-4">
+                  {(activities as any[]).map((act) => (
+                    <div key={act.id} className="relative">
+                      <div className="absolute -right-[21px] top-1 h-2 w-2 rounded-full bg-primary" />
+                      <p className="font-semibold text-sm">{act.action} - {act.entityType}</p>
+                      {act.details && <p className="text-xs text-muted-foreground mt-1">{act.details}</p>}
+                      <p className="text-[10px] text-muted-foreground mt-1">{formatDate(act.createdAt)}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+          </>
+        )}
+      </Tabs>
 
       {/* Dialogs */}
+      <ChangeOrderDialog 
+        projectId={projectId} 
+        open={changeOrderDialogOpen} 
+        onOpenChange={setChangeOrderDialogOpen} 
+      />
       <ProjectDialog 
         open={editProjectOpen} 
         onOpenChange={setEditProjectOpen} 
@@ -520,7 +801,9 @@ export default function ProjectDetails() {
         defaultValues={{
           name: project.name,
           clientName: project.clientName,
+          baseCurrency: project.baseCurrency,
           location: project.location || "",
+          budget: project.budget !== null ? Number(project.budget) : undefined,
           notes: project.notes || ""
         }}
       />
@@ -564,6 +847,46 @@ export default function ProjectDetails() {
         open={importDialogOpen}
         onOpenChange={setImportDialogOpen}
       />
+
+      <PhotoUploadDialog
+        projectId={projectId}
+        open={photoDialogOpen}
+        onOpenChange={setPhotoDialogOpen}
+      />
+
+      <RecurringDialog
+        projectId={projectId}
+        open={recurringDialogOpen}
+        onOpenChange={setRecurringDialogOpen}
+      />
+
+      <Dialog open={!!viewingReceipt} onOpenChange={(open) => !open && setViewingReceipt(null)}>
+        <DialogContent className="max-w-4xl w-full h-[80vh] flex flex-col p-4 sm:p-6" dir="rtl">
+          <DialogHeader>
+            <DialogTitle>عرض المرفق</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-auto flex items-center justify-center bg-muted/30 rounded-md border mt-4 relative">
+            {viewingReceipt?.type.startsWith('image/') ? (
+              <img src={viewingReceipt.url} alt="Receipt" className="max-w-full max-h-full object-contain" />
+            ) : viewingReceipt ? (
+              <iframe src={viewingReceipt.url} className="w-full h-full border-0" title="PDF Viewer" />
+            ) : null}
+          </div>
+          <div className="flex justify-end mt-4">
+            <Button variant="outline" onClick={() => {
+              if (viewingReceipt) {
+                const a = document.createElement('a');
+                a.href = viewingReceipt.url;
+                a.download = 'receipt';
+                a.click();
+              }
+            }}>
+              <Download className="h-4 w-4 mr-2" />
+              تنزيل
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -31,4 +31,12 @@ export interface TransactionUpdate {
   deductionReason?: string | null;
   transportCost?: number | null;
   laborCost?: number | null;
+  /** Transaction currency (e.g. LYD, USD) */
+  currency?: string | null;
+  /** Exchange rate to base currency */
+  exchangeRate?: number | null;
+  /** GPS latitude of the transaction location */
+  latitude?: number | null;
+  /** GPS longitude of the transaction location */
+  longitude?: number | null;
 }

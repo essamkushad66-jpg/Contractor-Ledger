@@ -13,5 +13,7 @@ export interface ProjectInput {
   clientName: string;
   location?: string;
   notes?: string;
+  /** @exclusiveMinimum 0 */
   budget?: number | null;
+  baseCurrency?: string;
 }

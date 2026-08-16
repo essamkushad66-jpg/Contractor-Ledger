@@ -30,7 +30,7 @@ export function MembersDialog({ projectId, open, onOpenChange, currentUserRole }
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [email, setEmail] = useState("");
-  const [role, setRole] = useState<"editor" | "viewer">("viewer");
+  const [role, setRole] = useState<"editor" | "viewer" | "site_manager">("viewer");
 
   const { data: members, isLoading } = useListProjectMembers(projectId, {
     query: {
@@ -119,6 +119,7 @@ export function MembersDialog({ projectId, open, onOpenChange, currentUserRole }
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="editor">محرر (إضافة وتعديل المصاريف)</SelectItem>
+                  <SelectItem value="site_manager">مدير موقع (إضافة مصاريف فقط)</SelectItem>
                   <SelectItem value="viewer">مشاهد (إطلاع فقط)</SelectItem>
                 </SelectContent>
               </Select>
@@ -154,7 +155,7 @@ export function MembersDialog({ projectId, open, onOpenChange, currentUserRole }
                       )}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {m.role === "editor" ? "محرر" : "مشاهد"}
+                      {m.role === "editor" ? "محرر" : m.role === "site_manager" ? "مدير موقع" : "مشاهد"}
                     </p>
                   </div>
                   {currentUserRole === "owner" && (

@@ -14,6 +14,7 @@ import {
   UpdateTransactionResponse,
 } from "@workspace/api-zod";
 import { requireAuth } from "../middlewares/requireAuth";
+import { logActivity } from "../lib/activityLogger";
 
 type Env = {
   Variables: {
@@ -61,6 +62,9 @@ router.get("/projects/:id/transactions", async (c) => {
         deductionReason: t.deductionReason || undefined,
         transportCost: t.transportCost !== null ? Number(t.transportCost) : undefined,
         laborCost: t.laborCost !== null ? Number(t.laborCost) : undefined,
+        exchangeRate: t.exchangeRate !== null ? Number(t.exchangeRate) : undefined,
+        latitude: t.latitude !== null ? Number(t.latitude) : undefined,
+        longitude: t.longitude !== null ? Number(t.longitude) : undefined,
       })),
     ),
   );
@@ -90,11 +94,16 @@ router.post("/projects/:id/transactions", async (c) => {
       deductionValue: parsed.data.deductionValue !== undefined ? String(parsed.data.deductionValue) : null,
       transportCost: parsed.data.transportCost !== undefined ? String(parsed.data.transportCost) : null,
       laborCost: parsed.data.laborCost !== undefined ? String(parsed.data.laborCost) : null,
+      exchangeRate: parsed.data.exchangeRate !== undefined && parsed.data.exchangeRate !== null ? String(parsed.data.exchangeRate) : null,
+      latitude: parsed.data.latitude !== undefined ? String(parsed.data.latitude) : null,
+      longitude: parsed.data.longitude !== undefined ? String(parsed.data.longitude) : null,
       projectId: params.data.id,
     })
     .returning();
 
   if (!transaction) return c.json({ error: "Failed to create transaction" }, 400);
+
+  await logActivity(params.data.id, userId, 'created', 'transaction', transaction.id, { amount: transaction.amount, type: transaction.type, description: transaction.description });
 
   return c.json(
     CreateProjectTransactionResponse.parse({
@@ -105,6 +114,9 @@ router.post("/projects/:id/transactions", async (c) => {
       deductionReason: transaction.deductionReason || undefined,
       transportCost: transaction.transportCost !== null ? Number(transaction.transportCost) : undefined,
       laborCost: transaction.laborCost !== null ? Number(transaction.laborCost) : undefined,
+      exchangeRate: transaction.exchangeRate !== null ? Number(transaction.exchangeRate) : undefined,
+      latitude: transaction.latitude !== null ? Number(transaction.latitude) : undefined,
+      longitude: transaction.longitude !== null ? Number(transaction.longitude) : undefined,
     }),
     201
   );
@@ -134,6 +146,9 @@ router.post("/projects/:id/transactions/bulk", async (c) => {
     deductionReason: tx.deductionReason || undefined,
     transportCost: tx.transportCost !== undefined ? String(tx.transportCost) : null,
     laborCost: tx.laborCost !== undefined ? String(tx.laborCost) : null,
+    exchangeRate: tx.exchangeRate !== undefined && tx.exchangeRate !== null ? String(tx.exchangeRate) : null,
+    latitude: tx.latitude !== undefined ? String(tx.latitude) : null,
+    longitude: tx.longitude !== undefined ? String(tx.longitude) : null,
     projectId: params.data.id,
   }));
 
@@ -141,6 +156,10 @@ router.post("/projects/:id/transactions/bulk", async (c) => {
     .insert(transactionsTable)
     .values(valuesToInsert)
     .returning();
+
+  for (const t of inserted) {
+    await logActivity(params.data.id, userId, 'created', 'transaction', t.id, { amount: t.amount, type: t.type, description: t.description });
+  }
 
   return c.json(
     inserted.map(t => CreateProjectTransactionResponse.parse({
@@ -151,6 +170,9 @@ router.post("/projects/:id/transactions/bulk", async (c) => {
       deductionReason: t.deductionReason || undefined,
       transportCost: t.transportCost !== null ? Number(t.transportCost) : undefined,
       laborCost: t.laborCost !== null ? Number(t.laborCost) : undefined,
+      exchangeRate: t.exchangeRate !== null ? Number(t.exchangeRate) : undefined,
+      latitude: t.latitude !== null ? Number(t.latitude) : undefined,
+      longitude: t.longitude !== null ? Number(t.longitude) : undefined,
     })),
     201
   );
@@ -181,7 +203,7 @@ router.patch("/transactions/:id", async (c) => {
   if (!owned || !role) return c.json({ error: "Transaction not found" }, 404);
   if (role === "viewer") return c.json({ error: "Forbidden" }, 403);
 
-  const { date, amount, deductionValue, transportCost, laborCost, ...rest } = parsed.data;
+  const { date, amount, deductionValue, transportCost, laborCost, exchangeRate, latitude, longitude, ...rest } = parsed.data;
   const [transaction] = await db
     .update(transactionsTable)
     .set({
@@ -191,11 +213,16 @@ router.patch("/transactions/:id", async (c) => {
       ...(deductionValue !== undefined ? { deductionValue: deductionValue === null ? null : String(deductionValue) } : {}),
       ...(transportCost !== undefined ? { transportCost: transportCost === null ? null : String(transportCost) } : {}),
       ...(laborCost !== undefined ? { laborCost: laborCost === null ? null : String(laborCost) } : {}),
+      ...(exchangeRate !== undefined ? { exchangeRate: exchangeRate === null ? null : String(exchangeRate) } : {}),
+      ...(latitude !== undefined ? { latitude: latitude === null ? null : String(latitude) } : {}),
+      ...(longitude !== undefined ? { longitude: longitude === null ? null : String(longitude) } : {}),
     })
     .where(eq(transactionsTable.id, params.data.id))
     .returning();
 
   if (!transaction) return c.json({ error: "Transaction not found" }, 404);
+
+  await logActivity(transaction.projectId, userId, 'updated', 'transaction', transaction.id, { amount: transaction.amount, type: transaction.type, description: transaction.description });
 
   return c.json(
     UpdateTransactionResponse.parse({
@@ -206,6 +233,9 @@ router.patch("/transactions/:id", async (c) => {
       deductionReason: transaction.deductionReason || undefined,
       transportCost: transaction.transportCost !== null ? Number(transaction.transportCost) : undefined,
       laborCost: transaction.laborCost !== null ? Number(transaction.laborCost) : undefined,
+      exchangeRate: transaction.exchangeRate !== null ? Number(transaction.exchangeRate) : undefined,
+      latitude: transaction.latitude !== null ? Number(transaction.latitude) : undefined,
+      longitude: transaction.longitude !== null ? Number(transaction.longitude) : undefined,
     }),
   );
 });
@@ -222,6 +252,8 @@ router.delete("/transactions/:id", async (c) => {
   await db
     .delete(transactionsTable)
     .where(eq(transactionsTable.id, params.data.id));
+
+  await logActivity(owned.projectId, userId, 'deleted', 'transaction', owned.id, { amount: owned.amount, type: owned.type, description: owned.description });
 
   return new Response(null, { status: 204 });
 });

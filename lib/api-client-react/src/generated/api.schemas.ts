@@ -49,6 +49,7 @@ export const ProjectCurrentUserRole = {
   owner: 'owner',
   editor: 'editor',
   viewer: 'viewer',
+  site_manager: 'site_manager',
 } as const;
 
 export interface Project {
@@ -70,6 +71,7 @@ export interface Project {
   totalSpent: number;
   /** totalReceived minus totalSpent (money remaining in hand) */
   balance: number;
+  baseCurrency: string;
   createdAt: string;
   /** Role of the currently authenticated user in this project */
   currentUserRole: ProjectCurrentUserRole;
@@ -296,6 +298,7 @@ export type ProjectMemberRole = typeof ProjectMemberRole[keyof typeof ProjectMem
 export const ProjectMemberRole = {
   editor: 'editor',
   viewer: 'viewer',
+  site_manager: 'site_manager',
 } as const;
 
 export interface ProjectMember {
@@ -313,6 +316,7 @@ export type InviteMemberBodyRole = typeof InviteMemberBodyRole[keyof typeof Invi
 export const InviteMemberBodyRole = {
   editor: 'editor',
   viewer: 'viewer',
+  site_manager: 'site_manager',
 } as const;
 
 export interface InviteMemberBody {

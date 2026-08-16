@@ -34,6 +34,10 @@ export const transactionsTable = pgTable("transactions", {
   deductionReason: text("deduction_reason"),
   transportCost: numeric("transport_cost", { precision: 12, scale: 2 }),
   laborCost: numeric("labor_cost", { precision: 12, scale: 2 }),
+  currency: text("currency").default("LYD"),
+  exchangeRate: numeric("exchange_rate", { precision: 12, scale: 6 }),
+  latitude: numeric("latitude", { precision: 10, scale: 7 }),
+  longitude: numeric("longitude", { precision: 10, scale: 7 }),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { 
@@ -117,17 +118,19 @@ export default function Vendors() {
           </div>
         ) : (
           vendors?.map((v: Vendor) => (
-            <div key={v.id} className="bg-card text-card-foreground p-4 rounded-xl border shadow-sm">
+            <Link key={v.id} href={`/vendors/${v.id}`} className="bg-card text-card-foreground p-4 rounded-xl border shadow-sm block hover:shadow-md transition-shadow">
               <div className="flex justify-between items-start mb-3">
                 <div className="flex items-center gap-2 font-bold text-lg">
                   <User className="h-5 w-5 text-primary" />
                   {v.name}
                 </div>
                 <div className="flex gap-1">
-                  <Button variant="ghost" size="icon" onClick={() => handleEdit(v)} className="h-8 w-8 text-muted-foreground hover:text-primary">
+                  <Button variant="ghost" size="icon" onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleEdit(v); }} className="h-8 w-8 text-muted-foreground hover:text-primary">
                     <Edit className="h-4 w-4" />
                   </Button>
-                  <Button variant="ghost" size="icon" onClick={() => {
+                  <Button variant="ghost" size="icon" onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
                     if (confirm("هل أنت متأكد من حذف جهة الاتصال؟")) {
                       deleteMut.mutate(v.id);
                     }
@@ -155,7 +158,7 @@ export default function Vendors() {
                   </div>
                 )}
               </div>
-            </div>
+            </Link>
           ))
         )}
       </div>

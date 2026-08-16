@@ -1,17 +1,80 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useListProjects, useGetDashboardSummary } from "@workspace/api-client-react";
 import { formatCurrency } from "@/lib/format";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus, Building2, MapPin, Wallet, ArrowUpRight, ArrowDownRight, Loader2 } from "lucide-react";
 import { Link } from "wouter";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line, Cell } from 'recharts';
 import { ProjectDialog } from "@/components/project-dialog";
+
+type DateRange = 'this_month' | 'last_3_months' | 'this_year' | 'all';
 
 export default function Dashboard() {
   const { data: summary, isLoading: isLoadingSummary } = useGetDashboardSummary();
   const { data: projects, isLoading: isLoadingProjects } = useListProjects();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [dateRange, setDateRange] = useState<DateRange>('all');
+
+  const filteredProjects = useMemo(() => {
+    if (!projects || !Array.isArray(projects)) return [];
+    const now = new Date();
+    const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startOfLast3Months = new Date(now.getFullYear(), now.getMonth() - 2, 1);
+    const startOfThisYear = new Date(now.getFullYear(), 0, 1);
+
+    return projects.filter(p => {
+      const pDate = new Date(p.createdAt);
+      switch (dateRange) {
+        case 'this_month': return pDate >= startOfThisMonth;
+        case 'last_3_months': return pDate >= startOfLast3Months;
+        case 'this_year': return pDate >= startOfThisYear;
+        case 'all': default: return true;
+      }
+    });
+  }, [projects, dateRange]);
+
+  const computedSummary = useMemo(() => {
+    if (dateRange === 'all' && summary) return summary;
+    if (!filteredProjects) return { totalBalance: 0, totalSpent: 0, totalReceived: 0, projectCount: 0 };
+    return {
+      totalBalance: filteredProjects.reduce((sum, p) => sum + p.balance, 0),
+      totalSpent: filteredProjects.reduce((sum, p) => sum + p.totalSpent, 0),
+      totalReceived: filteredProjects.reduce((sum, p) => sum + p.totalReceived, 0),
+      projectCount: filteredProjects.length
+    };
+  }, [summary, filteredProjects, dateRange]);
+
+  const monthlyData = useMemo(() => {
+    if (!filteredProjects) return [];
+    const map = new Map<string, { month: string, income: number, expense: number, dateObj: Date }>();
+    
+    filteredProjects.forEach(p => {
+      const d = new Date(p.createdAt);
+      const key = `${d.getFullYear()}-${d.getMonth()}`;
+      if (!map.has(key)) {
+        map.set(key, {
+          month: new Intl.DateTimeFormat('ar-LY', { month: 'short', year: 'numeric' }).format(d),
+          income: 0,
+          expense: 0,
+          dateObj: d,
+        });
+      }
+      const data = map.get(key)!;
+      data.income += p.totalReceived;
+      data.expense += p.totalSpent;
+    });
+
+    return Array.from(map.values()).sort((a, b) => a.dateObj.getTime() - b.dateObj.getTime());
+  }, [filteredProjects]);
+
+  const profitData = useMemo(() => {
+    if (!filteredProjects) return [];
+    return filteredProjects.map(p => ({
+      name: p.name,
+      profit: p.totalReceived - p.totalSpent
+    }));
+  }, [filteredProjects]);
 
   return (
     <div className="space-y-6">
@@ -22,6 +85,13 @@ export default function Dashboard() {
           <span className="hidden sm:inline">إضافة مشروع</span>
           <span className="sm:hidden">مشروع</span>
         </Button>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        <Button size="sm" variant={dateRange === 'this_month' ? 'default' : 'outline'} onClick={() => setDateRange('this_month')}>هذا الشهر</Button>
+        <Button size="sm" variant={dateRange === 'last_3_months' ? 'default' : 'outline'} onClick={() => setDateRange('last_3_months')}>آخر 3 أشهر</Button>
+        <Button size="sm" variant={dateRange === 'this_year' ? 'default' : 'outline'} onClick={() => setDateRange('this_year')}>هذه السنة</Button>
+        <Button size="sm" variant={dateRange === 'all' ? 'default' : 'outline'} onClick={() => setDateRange('all')}>الكل</Button>
       </div>
 
       {isLoadingSummary ? (
@@ -38,7 +108,7 @@ export default function Dashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">{formatCurrency(summary?.totalBalance || 0)}</div>
+              <div className="text-3xl font-bold">{formatCurrency(computedSummary?.totalBalance || 0)}</div>
             </CardContent>
           </Card>
           
@@ -50,7 +120,7 @@ export default function Dashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-destructive">{formatCurrency(summary?.totalSpent || 0)}</div>
+              <div className="text-2xl font-bold text-destructive">{formatCurrency(computedSummary?.totalSpent || 0)}</div>
             </CardContent>
           </Card>
           
@@ -62,39 +132,59 @@ export default function Dashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-success">{formatCurrency(summary?.totalReceived || 0)}</div>
+              <div className="text-2xl font-bold text-success">{formatCurrency(computedSummary?.totalReceived || 0)}</div>
             </CardContent>
           </Card>
         </div>
       )}
 
-      {!isLoadingProjects && Array.isArray(projects) && projects.length > 0 && (
-        <Card className="p-4 pt-6 mt-6 overflow-x-auto shadow-sm">
-          <h3 className="text-lg font-bold mb-6 text-center">التحليل المالي للمشاريع</h3>
-          <div className="h-72 min-w-[500px]" dir="ltr">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={projects.map(p => ({
-                  name: p.name,
-                  "المصروف": p.totalSpent,
-                  "المستلم": p.totalReceived,
-                }))}
-                margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-                <XAxis dataKey="name" tick={{ fill: 'hsl(var(--muted-foreground))' }} />
-                <YAxis tick={{ fill: 'hsl(var(--muted-foreground))' }} tickFormatter={(val) => `${val/1000}k`} />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: 'hsl(var(--card))', borderColor: 'hsl(var(--border))', borderRadius: '8px', color: 'hsl(var(--foreground))' }}
-                  itemStyle={{ fontWeight: 'bold' }}
-                />
-                <Legend wrapperStyle={{ paddingTop: '20px' }} />
-                <Bar dataKey="المصروف" fill="hsl(var(--destructive))" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="المستلم" fill="hsl(var(--success))" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </Card>
+      {!isLoadingProjects && Array.isArray(filteredProjects) && filteredProjects.length > 0 && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+          <Card className="p-4 pt-6 shadow-sm overflow-x-auto">
+            <h3 className="text-lg font-bold mb-6 text-center">التدفق النقدي (حسب شهر الإنشاء)</h3>
+            <div className="h-72 min-w-[300px]" dir="ltr">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={monthlyData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
+                  <XAxis dataKey="month" tick={{ fill: 'hsl(var(--muted-foreground))' }} />
+                  <YAxis tick={{ fill: 'hsl(var(--muted-foreground))' }} tickFormatter={(val) => `${val/1000}k`} />
+                  <Tooltip 
+                    formatter={(value: number) => formatCurrency(value)}
+                    contentStyle={{ backgroundColor: 'hsl(var(--card))', borderColor: 'hsl(var(--border))', borderRadius: '8px', color: 'hsl(var(--foreground))' }}
+                    itemStyle={{ fontWeight: 'bold' }}
+                  />
+                  <Legend wrapperStyle={{ paddingTop: '20px' }} />
+                  <Line type="monotone" dataKey="income" name="الدخل (المستلم)" stroke="hsl(var(--success))" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                  <Line type="monotone" dataKey="expense" name="المصروف" stroke="hsl(var(--destructive))" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </Card>
+
+          <Card className="p-4 pt-6 shadow-sm overflow-x-auto">
+            <h3 className="text-lg font-bold mb-6 text-center">مقارنة الأرباح للمشاريع</h3>
+            <div className="h-72 min-w-[300px]" dir="ltr">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={profitData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
+                  <XAxis dataKey="name" tick={{ fill: 'hsl(var(--muted-foreground))' }} />
+                  <YAxis tick={{ fill: 'hsl(var(--muted-foreground))' }} tickFormatter={(val) => `${val/1000}k`} />
+                  <Tooltip 
+                    formatter={(value: number) => formatCurrency(value)}
+                    contentStyle={{ backgroundColor: 'hsl(var(--card))', borderColor: 'hsl(var(--border))', borderRadius: '8px', color: 'hsl(var(--foreground))' }}
+                    itemStyle={{ fontWeight: 'bold' }}
+                  />
+                  <Legend wrapperStyle={{ paddingTop: '20px' }} />
+                  <Bar dataKey="profit" name="الربح (المستلم - المصروف)" radius={[4, 4, 0, 0]}>
+                    {profitData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.profit >= 0 ? "hsl(var(--success))" : "hsl(var(--destructive))"} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </Card>
+        </div>
       )}
 
       <div className="space-y-4 mt-8">
@@ -129,7 +219,7 @@ export default function Dashboard() {
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {projects.map((project) => (
+            {filteredProjects.map((project) => (
               <Link key={project.id} href={`/projects/${project.id}`} className="block transition-transform hover:-translate-y-1 active:scale-95">
                 <Card className="h-full hover:border-primary/50 transition-colors cursor-pointer">
                   <CardHeader className="pb-2">

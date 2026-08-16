@@ -9,6 +9,7 @@ export const projectsTable = pgTable("projects", {
   clientName: text("client_name").notNull(),
   location: text("location"),
   budget: numeric("budget"),
+  baseCurrency: text("base_currency").notNull().default("LYD"),
   notes: text("notes"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()

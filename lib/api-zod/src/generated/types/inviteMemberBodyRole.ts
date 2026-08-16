@@ -12,4 +12,5 @@ export type InviteMemberBodyRole = typeof InviteMemberBodyRole[keyof typeof Invi
 export const InviteMemberBodyRole = {
   editor: 'editor',
   viewer: 'viewer',
+  site_manager: 'site_manager',
 } as const;

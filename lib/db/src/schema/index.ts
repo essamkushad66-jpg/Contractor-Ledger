@@ -21,3 +21,7 @@ export * from "./projects";
 export * from "./transactions";
 export * from "./project_members";
 export * from "./vendors";
+export * from "./activity_log";
+export * from "./recurring_transactions";
+export * from "./change_orders";
+export * from "./site_photos";

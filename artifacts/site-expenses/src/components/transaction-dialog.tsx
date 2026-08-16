@@ -29,6 +29,8 @@ const transactionSchema = z.object({
   deductionReason: z.string().optional(),
   transportCost: z.coerce.number().min(0, "لا يمكن أن تكون القيمة سالبة").optional().or(z.literal("")),
   laborCost: z.coerce.number().min(0, "لا يمكن أن تكون القيمة سالبة").optional().or(z.literal("")),
+  currency: z.string().optional().default("LYD"),
+  exchangeRate: z.coerce.number().min(0.000001, "يجب أن يكون أكبر من 0").optional().or(z.literal("")),
 });
 
 type TransactionFormData = z.infer<typeof transactionSchema>;
@@ -57,7 +59,10 @@ export function TransactionDialog({
       type,
       amount: "" as unknown as number, // Let the user type it fresh
       description: "",
-      date: new Date().toISOString().split('T')[0],
+      date: (() => {
+        const d = new Date();
+        return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+      })(),
       shopName: "",
       vendorId: "",
       personName: "",
@@ -68,12 +73,29 @@ export function TransactionDialog({
       deductionReason: "",
       transportCost: "",
       laborCost: "",
+      currency: "LYD",
+      exchangeRate: "",
     }
   });
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [receiptFiles, setReceiptFiles] = useState<File[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [geoLocation, setGeoLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+
+  // Auto-capture GPS location on dialog open
+  useEffect(() => {
+    if (open && !isEdit && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setGeoLocation({ latitude: pos.coords.latitude, longitude: pos.coords.longitude });
+        },
+        () => { setGeoLocation(null); },
+        { enableHighAccuracy: true, timeout: 5000 }
+      );
+    }
+    if (!open) setGeoLocation(null);
+  }, [open, isEdit]);
 
   // Reset form when dialog opens/closes or type changes
   useEffect(() => {
@@ -83,6 +105,10 @@ export function TransactionDialog({
         type,
         amount: "" as unknown as number,
         description: "",
+        date: (() => {
+          const d = new Date();
+          return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+        })(),
         shopName: "",
         vendorId: "",
         personName: "",
@@ -93,6 +119,8 @@ export function TransactionDialog({
         deductionReason: "",
         transportCost: "",
         laborCost: "",
+        currency: "LYD",
+        exchangeRate: "",
       });
     }
   }, [open, defaultValues, type, form]);
@@ -178,14 +206,24 @@ export function TransactionDialog({
     if (submitData.laborCost === "" || submitData.laborCost === 0) {
       submitData.laborCost = undefined;
     }
+    if (submitData.exchangeRate === "") {
+      submitData.exchangeRate = undefined;
+    }
     if (submitData.vendorId === "") {
       submitData.vendorId = undefined;
     }
 
+    // Attach GPS coordinates if captured
+    const finalData: any = { ...submitData };
+    if (geoLocation) {
+      finalData.latitude = geoLocation.latitude;
+      finalData.longitude = geoLocation.longitude;
+    }
+
     if (isEdit && transactionId) {
-      updateMutation.mutate({ id: transactionId, data: submitData as any }, { onSuccess });
+      updateMutation.mutate({ id: transactionId, data: finalData }, { onSuccess });
     } else {
-      createMutation.mutate({ id: projectId, data: submitData as any }, { onSuccess });
+      createMutation.mutate({ id: projectId, data: finalData }, { onSuccess });
     }
   };
 
@@ -200,18 +238,51 @@ export function TransactionDialog({
           </DialogTitle>
         </DialogHeader>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 mt-4">
-          <div className="space-y-2">
-            <Label>{type === "expense" ? "المبلغ الأساسي للفاتورة (د.ل)" : "المبلغ (د.ل)"}</Label>
-            <Input 
-              type="number" 
-              step="any" 
-              {...form.register("amount")} 
-              placeholder={type === "expense" ? "مثال: 1500" : "مثال: 5000"} 
-              dir="ltr" 
-              className="text-right text-lg font-bold" 
-            />
-            {form.formState.errors.amount && <p className="text-sm text-destructive">{form.formState.errors.amount.message}</p>}
+          <div className="grid grid-cols-[2fr_1fr] gap-4">
+            <div className="space-y-2">
+              <Label>{type === "expense" ? "المبلغ الأساسي للفاتورة" : "المبلغ"}</Label>
+              <Input 
+                type="number" 
+                step="any" 
+                {...form.register("amount")} 
+                placeholder={type === "expense" ? "مثال: 1500" : "مثال: 5000"} 
+                dir="ltr" 
+                className="text-right text-lg font-bold" 
+              />
+              {form.formState.errors.amount && <p className="text-sm text-destructive">{form.formState.errors.amount.message}</p>}
+            </div>
+            <div className="space-y-2">
+              <Label>العملة</Label>
+              <Select 
+                value={form.watch("currency")} 
+                onValueChange={(val) => form.setValue("currency", val)}
+                dir="rtl"
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="العملة" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="LYD">دينار (LYD)</SelectItem>
+                  <SelectItem value="USD">دولار (USD)</SelectItem>
+                  <SelectItem value="EUR">يورو (EUR)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
+          
+          {form.watch("currency") !== "LYD" && (
+            <div className="space-y-2">
+              <Label>سعر الصرف (كم دينار مقابل 1 {form.watch("currency")})</Label>
+              <Input 
+                type="number" 
+                step="any" 
+                {...form.register("exchangeRate")} 
+                placeholder="مثال: 7.25" 
+                dir="ltr" 
+              />
+              {form.formState.errors.exchangeRate && <p className="text-sm text-destructive">{form.formState.errors.exchangeRate.message}</p>}
+            </div>
+          )}
 
           {(type === "expense" && calcGross() > Number(watchAmount || 0)) && (
             <div className="p-3 bg-primary/10 border border-primary/20 rounded-md text-center">

@@ -20,6 +20,7 @@ import {
 } from "@workspace/api-zod";
 import { attachTotals, attachTotalsSingle } from "../lib/projectTotals";
 import { requireAuth } from "../middlewares/requireAuth";
+import { logActivity } from "../lib/activityLogger";
 import { createClerkClient } from "@clerk/backend";
 import { env } from "hono/adapter";
 
@@ -32,13 +33,6 @@ type Env = {
 const router = new Hono<Env>();
 
 router.use("*", requireAuth);
-
-async function claimOrphanProjects(userId: string): Promise<void> {
-  await db
-    .update(projectsTable)
-    .set({ userId })
-    .where(isNull(projectsTable.userId));
-}
 
 async function claimOrphanInvites(userId: string, c: any): Promise<void> {
   const { CLERK_SECRET_KEY } = env<{ CLERK_SECRET_KEY: string }>(c);
@@ -68,7 +62,6 @@ async function checkProjectAccess(projectId: number, userId: string) {
 
 router.get("/projects", async (c) => {
   const userId = c.get("userId");
-  await claimOrphanProjects(userId);
   await claimOrphanInvites(userId, c);
 
   const memberProjectIds = db.select({ id: projectMembersTable.projectId })
@@ -124,6 +117,9 @@ router.post("/projects", async (c) => {
   }
 
   const withTotals = await attachTotalsSingle(project);
+  
+  await logActivity(project.id, userId, 'created', 'project', project.id, { name: project.name });
+  
   return c.json(CreateProjectResponse.parse({ ...withTotals, currentUserRole: "owner" }), 201);
 });
 
@@ -164,6 +160,9 @@ router.patch("/projects/:id", async (c) => {
     .returning();
 
   const withTotals = await attachTotalsSingle(updatedProject!);
+  
+  await logActivity(updatedProject!.id, userId, 'updated', 'project', updatedProject!.id, restData);
+  
   return c.json(UpdateProjectResponse.parse({ ...withTotals, currentUserRole: role }));
 });
 
@@ -179,6 +178,8 @@ router.delete("/projects/:id", async (c) => {
   await db.delete(transactionsTable).where(eq(transactionsTable.projectId, params.data.id));
   await db.delete(projectMembersTable).where(eq(projectMembersTable.projectId, params.data.id));
   await db.delete(projectsTable).where(eq(projectsTable.id, params.data.id));
+
+  await logActivity(params.data.id, userId, 'deleted', 'project', params.data.id);
 
   return new Response(null, { status: 204 });
 });
@@ -244,6 +245,8 @@ router.post("/projects/:id/members", async (c) => {
       role: parsed.data.role
     }).returning();
 
+  await logActivity(project.id, userId, 'created', 'member', newMember.id, { email: emailToInvite, role: parsed.data.role });
+
   return c.json(InviteProjectMemberResponse.parse(newMember), 201);
 });
 
@@ -264,6 +267,8 @@ router.delete("/projects/:id/members/:memberId", async (c) => {
 
   await db.delete(projectMembersTable)
     .where(eq(projectMembersTable.id, params.data.memberId));
+
+  await logActivity(params.data.id, userId, 'deleted', 'member', params.data.memberId, { email: memberToRemove.email });
 
   return new Response(null, { status: 204 });
 });

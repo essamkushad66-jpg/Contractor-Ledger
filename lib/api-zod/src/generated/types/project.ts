@@ -20,6 +20,8 @@ export interface Project {
      * @nullable
      */
   budget?: number | null;
+  /** The base currency of the project (e.g. LYD, USD, EUR) */
+  baseCurrency: string;
   /** Sum of all deposits received for this project */
   totalReceived: number;
   /** Sum of all expenses recorded for this project */

@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import * as zod from 'zod';
+export * from './types/extra';
 
 
 /**
@@ -27,11 +28,12 @@ export const ListProjectsResponseItem = zod.object({
   "location": zod.string().nullable(),
   "notes": zod.string().nullable(),
   "budget": zod.number().nullish().describe('Total budget allocated for the project'),
+  "baseCurrency": zod.string(),
   "totalReceived": zod.number().describe('Sum of all deposits received for this project'),
   "totalSpent": zod.number().describe('Sum of all expenses recorded for this project'),
   "balance": zod.number().describe('totalReceived minus totalSpent (money remaining in hand)'),
   "createdAt": zod.coerce.date(),
-  "currentUserRole": zod.enum(['owner', 'editor', 'viewer']).describe('Role of the currently authenticated user in this project')
+  "currentUserRole": zod.enum(['owner', 'editor', 'viewer', 'site_manager']).describe('Role of the currently authenticated user in this project')
 })
 export const ListProjectsResponse = zod.array(ListProjectsResponseItem)
 
@@ -48,7 +50,8 @@ export const CreateProjectBody = zod.object({
   "clientName": zod.string().min(1),
   "location": zod.string().optional(),
   "notes": zod.string().optional(),
-  "budget": zod.number().nullish()
+  "budget": zod.number().nullish(),
+  "baseCurrency": zod.string().optional()
 })
 
 export const CreateProjectResponse = zod.object({
@@ -58,11 +61,12 @@ export const CreateProjectResponse = zod.object({
   "location": zod.string().nullable(),
   "notes": zod.string().nullable(),
   "budget": zod.number().nullish().describe('Total budget allocated for the project'),
+  "baseCurrency": zod.string(),
   "totalReceived": zod.number().describe('Sum of all deposits received for this project'),
   "totalSpent": zod.number().describe('Sum of all expenses recorded for this project'),
   "balance": zod.number().describe('totalReceived minus totalSpent (money remaining in hand)'),
   "createdAt": zod.coerce.date(),
-  "currentUserRole": zod.enum(['owner', 'editor', 'viewer']).describe('Role of the currently authenticated user in this project')
+  "currentUserRole": zod.enum(['owner', 'editor', 'viewer', 'site_manager']).describe('Role of the currently authenticated user in this project')
 })
 
 
@@ -80,11 +84,12 @@ export const GetProjectResponse = zod.object({
   "location": zod.string().nullable(),
   "notes": zod.string().nullable(),
   "budget": zod.number().nullish().describe('Total budget allocated for the project'),
+  "baseCurrency": zod.string(),
   "totalReceived": zod.number().describe('Sum of all deposits received for this project'),
   "totalSpent": zod.number().describe('Sum of all expenses recorded for this project'),
   "balance": zod.number().describe('totalReceived minus totalSpent (money remaining in hand)'),
   "createdAt": zod.coerce.date(),
-  "currentUserRole": zod.enum(['owner', 'editor', 'viewer']).describe('Role of the currently authenticated user in this project')
+  "currentUserRole": zod.enum(['owner', 'editor', 'viewer', 'site_manager']).describe('Role of the currently authenticated user in this project')
 })
 
 
@@ -104,7 +109,8 @@ export const UpdateProjectBody = zod.object({
   "clientName": zod.string().min(1).optional(),
   "location": zod.string().optional(),
   "notes": zod.string().optional(),
-  "budget": zod.number().nullish()
+  "budget": zod.number().nullish(),
+  "baseCurrency": zod.string().optional()
 })
 
 export const UpdateProjectResponse = zod.object({
@@ -114,11 +120,12 @@ export const UpdateProjectResponse = zod.object({
   "location": zod.string().nullable(),
   "notes": zod.string().nullable(),
   "budget": zod.number().nullish().describe('Total budget allocated for the project'),
+  "baseCurrency": zod.string(),
   "totalReceived": zod.number().describe('Sum of all deposits received for this project'),
   "totalSpent": zod.number().describe('Sum of all expenses recorded for this project'),
   "balance": zod.number().describe('totalReceived minus totalSpent (money remaining in hand)'),
   "createdAt": zod.coerce.date(),
-  "currentUserRole": zod.enum(['owner', 'editor', 'viewer']).describe('Role of the currently authenticated user in this project')
+  "currentUserRole": zod.enum(['owner', 'editor', 'viewer', 'site_manager']).describe('Role of the currently authenticated user in this project')
 })
 
 
@@ -162,6 +169,10 @@ export const ListProjectTransactionsResponseItem = zod.object({
   "deductionReason": zod.string().nullish().describe('Reason for deduction (e.g. نسبة التوريد)'),
   "transportCost": zod.number().nullish(),
   "laborCost": zod.number().nullish(),
+  "currency": zod.string().nullish().describe('Transaction currency (e.g. LYD, USD)'),
+  "exchangeRate": zod.number().nullish().describe('Exchange rate to base currency'),
+  "latitude": zod.number().nullish().describe('GPS latitude of the transaction location'),
+  "longitude": zod.number().nullish().describe('GPS longitude of the transaction location'),
   "createdAt": zod.coerce.date()
 })
 export const ListProjectTransactionsResponse = zod.array(ListProjectTransactionsResponseItem)
@@ -197,7 +208,11 @@ export const CreateProjectTransactionBody = zod.object({
   "deductionValue": zod.number().nullish(),
   "deductionReason": zod.string().nullish(),
   "transportCost": zod.number().nullish(),
-  "laborCost": zod.number().nullish()
+  "laborCost": zod.number().nullish(),
+  "currency": zod.string().nullish().describe('Transaction currency (e.g. LYD, USD)'),
+  "exchangeRate": zod.number().nullish().describe('Exchange rate to base currency'),
+  "latitude": zod.number().nullish().describe('GPS latitude of the transaction location'),
+  "longitude": zod.number().nullish().describe('GPS longitude of the transaction location')
 })
 
 export const createProjectTransactionResponsePaymentMethodDefault = `cash`;
@@ -223,6 +238,10 @@ export const CreateProjectTransactionResponse = zod.object({
   "deductionReason": zod.string().nullish().describe('Reason for deduction (e.g. نسبة التوريد)'),
   "transportCost": zod.number().nullish(),
   "laborCost": zod.number().nullish(),
+  "currency": zod.string().nullish().describe('Transaction currency (e.g. LYD, USD)'),
+  "exchangeRate": zod.number().nullish().describe('Exchange rate to base currency'),
+  "latitude": zod.number().nullish().describe('GPS latitude of the transaction location'),
+  "longitude": zod.number().nullish().describe('GPS longitude of the transaction location'),
   "createdAt": zod.coerce.date()
 })
 
@@ -301,7 +320,7 @@ export const ListProjectMembersResponseItem = zod.object({
   "projectId": zod.number(),
   "userId": zod.string().nullable(),
   "email": zod.string(),
-  "role": zod.enum(['editor', 'viewer']),
+  "role": zod.enum(['editor', 'viewer', 'site_manager']),
   "createdAt": zod.coerce.date()
 })
 export const ListProjectMembersResponse = zod.array(ListProjectMembersResponseItem)
@@ -316,7 +335,7 @@ export const InviteProjectMemberParams = zod.object({
 
 export const InviteProjectMemberBody = zod.object({
   "email": zod.string(),
-  "role": zod.enum(['editor', 'viewer'])
+  "role": zod.enum(['editor', 'viewer', 'site_manager'])
 })
 
 export const InviteProjectMemberResponse = zod.object({
@@ -324,7 +343,7 @@ export const InviteProjectMemberResponse = zod.object({
   "projectId": zod.number(),
   "userId": zod.string().nullable(),
   "email": zod.string(),
-  "role": zod.enum(['editor', 'viewer']),
+  "role": zod.enum(['editor', 'viewer', 'site_manager']),
   "createdAt": zod.coerce.date()
 })
 
@@ -368,7 +387,11 @@ export const UpdateTransactionBody = zod.object({
   "deductionValue": zod.number().nullish(),
   "deductionReason": zod.string().nullish(),
   "transportCost": zod.number().nullish(),
-  "laborCost": zod.number().nullish()
+  "laborCost": zod.number().nullish(),
+  "currency": zod.string().nullish().describe('Transaction currency (e.g. LYD, USD)'),
+  "exchangeRate": zod.number().nullish().describe('Exchange rate to base currency'),
+  "latitude": zod.number().nullish().describe('GPS latitude of the transaction location'),
+  "longitude": zod.number().nullish().describe('GPS longitude of the transaction location')
 })
 
 export const updateTransactionResponsePaymentMethodDefault = `cash`;
@@ -394,6 +417,10 @@ export const UpdateTransactionResponse = zod.object({
   "deductionReason": zod.string().nullish().describe('Reason for deduction (e.g. نسبة التوريد)'),
   "transportCost": zod.number().nullish(),
   "laborCost": zod.number().nullish(),
+  "currency": zod.string().nullish().describe('Transaction currency (e.g. LYD, USD)'),
+  "exchangeRate": zod.number().nullish().describe('Exchange rate to base currency'),
+  "latitude": zod.number().nullish().describe('GPS latitude of the transaction location'),
+  "longitude": zod.number().nullish().describe('GPS longitude of the transaction location'),
   "createdAt": zod.coerce.date()
 })
 
@@ -413,6 +440,8 @@ export const DeleteTransactionResponse = zod.void()
  */
 export const GetDashboardSummaryResponse = zod.object({
   "projectCount": zod.number(),
+  "budget": zod.number().nullable().optional(),
+  "baseCurrency": zod.string(),
   "totalReceived": zod.number(),
   "totalSpent": zod.number(),
   "totalBalance": zod.number()

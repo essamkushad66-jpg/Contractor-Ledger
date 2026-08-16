@@ -12,4 +12,5 @@ export type ProjectMemberRole = typeof ProjectMemberRole[keyof typeof ProjectMem
 export const ProjectMemberRole = {
   editor: 'editor',
   viewer: 'viewer',
+  site_manager: 'site_manager',
 } as const;
