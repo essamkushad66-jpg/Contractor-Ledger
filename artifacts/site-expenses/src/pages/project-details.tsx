@@ -15,6 +15,7 @@ import { customFetch } from "@workspace/api-client-react";
 import { ProjectDialog } from "@/components/project-dialog";
 import { TransactionDialog } from "@/components/transaction-dialog";
 import { MembersDialog } from "@/components/members-dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ImportDialog } from "@/components/import-dialog";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -657,21 +658,36 @@ export default function ProjectDetails() {
             لا توجد صور مضافة للمشروع.
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div className="relative border-r-2 border-primary/20 pr-6 sm:pr-8 space-y-10 py-4">
             {(photos as any[]).map((photo) => (
-              <Card key={photo.id} className="overflow-hidden cursor-pointer hover:ring-2 ring-primary transition-all" onClick={() => viewReceipt(photo.photoPath)}>
-                <div className="aspect-square bg-muted relative">
-                  <img 
-                    src={photo.photoPath.startsWith('http') ? photo.photoPath : `/api/storage${photo.photoPath}`} 
-                    alt={photo.caption || 'صورة'} 
-                    className="object-cover w-full h-full"
-                  />
+              <div key={photo.id} className="relative">
+                {/* Timeline node */}
+                <div className="absolute -right-[29px] sm:-right-[37px] top-4 h-4 w-4 rounded-full bg-primary ring-4 ring-background" />
+                
+                <div className="flex flex-col sm:flex-row gap-3 sm:gap-6">
+                  {/* Date/Time info */}
+                  <div className="sm:w-32 shrink-0 pt-3">
+                    <p className="text-sm font-bold text-primary">{formatDate(photo.takenAt)}</p>
+                    <p className="text-xs text-muted-foreground mt-1">تطور المشروع</p>
+                  </div>
+                  
+                  {/* Photo Card */}
+                  <Card className="overflow-hidden cursor-pointer hover:ring-2 ring-primary transition-all flex-1 max-w-xl group" onClick={() => viewReceipt(photo.photoPath)}>
+                    <div className="aspect-video sm:aspect-[4/3] bg-muted relative">
+                      <img 
+                        src={photo.photoPath.startsWith('http') ? photo.photoPath : `/api/storage${photo.photoPath}`} 
+                        alt={photo.caption || 'صورة تطور'} 
+                        className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
+                      />
+                    </div>
+                    {photo.caption && (
+                      <CardContent className="p-4 bg-card">
+                        <p className="text-sm font-bold">{photo.caption}</p>
+                      </CardContent>
+                    )}
+                  </Card>
                 </div>
-                <CardContent className="p-3">
-                  {photo.caption && <p className="text-sm font-medium line-clamp-2 mb-1">{photo.caption}</p>}
-                  <p className="text-xs text-muted-foreground">{formatDate(photo.takenAt)}</p>
-                </CardContent>
-              </Card>
+              </div>
             ))}
           </div>
         )}
